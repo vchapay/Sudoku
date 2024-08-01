@@ -13,12 +13,12 @@ using System.Windows.Forms;
 
 namespace Sudoku.SpecialControls
 {
-    internal class MapDisplay : Control
+    internal class SudokuPlayerDisplay : Control
     {
         private MapInterface _dataSource;
-        private MapDrawer _drawer;
+        private readonly MapDrawer _drawer;
 
-        public MapDisplay() 
+        public SudokuPlayerDisplay() 
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
                 ControlStyles.ResizeRedraw |
@@ -31,6 +31,9 @@ namespace Sudoku.SpecialControls
             map.FillWithDefaultValues();
             _drawer = new MapDrawer();
             _dataSource = map.GetInterface();
+            Width = 350;
+            Height = 350;
+            Font = _drawer.Font;
         }
 
         public MapInterface DataSource
@@ -39,30 +42,21 @@ namespace Sudoku.SpecialControls
             set { _dataSource = value; }
         }
 
-        public Font OpenedCellsFont
-        {
-            get => _drawer.Font;
-            set {
-                _drawer.Font = value ?? _drawer.Font;
-                Invalidate();
-            }
-        }
-
         protected override void OnPaint(PaintEventArgs e)
         {
+            e.Graphics.Clear(Color.White);
             _drawer.Draw(e.Graphics, _dataSource);
         }
 
         protected override void OnResize(EventArgs e)
         {
             Invalidate();
-            base.OnResize(e);
         }
 
         protected override void OnFontChanged(EventArgs e)
         {
+            _drawer.Font = Font;
             Invalidate();
-            base.OnFontChanged(e);
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
@@ -77,13 +71,10 @@ namespace Sudoku.SpecialControls
             }
 
             Invalidate();
-            base.OnMouseUp(e);
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            base.OnKeyDown(e);
-
             if (e.KeyCode == Keys.Delete)
             {
                 _dataSource.Write(0);
@@ -94,8 +85,6 @@ namespace Sudoku.SpecialControls
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            base.OnKeyPress(e);
-
             if (char.IsDigit(e.KeyChar))
             {
                 _dataSource.Write(int.Parse(e.KeyChar.ToString()));

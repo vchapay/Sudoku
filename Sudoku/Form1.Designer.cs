@@ -28,25 +28,27 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.mapDisplay1 = new Sudoku.SpecialControls.MapDisplay();
+            Sudoku.MapLogic.Map map1 = new Sudoku.MapLogic.Map();
+            this.sudokuMakerDisplay1 = new Sudoku.SpecialControls.SudokuMakerDisplay();
             this.SuspendLayout();
             // 
-            // mapDisplay1
+            // sudokuMakerDisplay1
             // 
-            this.mapDisplay1.Dock = System.Windows.Forms.DockStyle.Right;
-            this.mapDisplay1.Location = new System.Drawing.Point(829, 0);
-            this.mapDisplay1.Name = "mapDisplay1";
-            this.mapDisplay1.OpenedCellsFont = new System.Drawing.Font("Times New Roman", 26F);
-            this.mapDisplay1.Size = new System.Drawing.Size(682, 682);
-            this.mapDisplay1.TabIndex = 0;
-            this.mapDisplay1.Text = "mapDisplay1";
+            this.sudokuMakerDisplay1.DataSource = map1;
+            this.sudokuMakerDisplay1.Dock = System.Windows.Forms.DockStyle.Right;
+            this.sudokuMakerDisplay1.Font = new System.Drawing.Font("Times New Roman", 26F);
+            this.sudokuMakerDisplay1.Location = new System.Drawing.Point(850, 0);
+            this.sudokuMakerDisplay1.Name = "sudokuMakerDisplay1";
+            this.sudokuMakerDisplay1.Size = new System.Drawing.Size(661, 682);
+            this.sudokuMakerDisplay1.TabIndex = 0;
+            this.sudokuMakerDisplay1.Text = "sudokuMakerDisplay1";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1511, 682);
-            this.Controls.Add(this.mapDisplay1);
+            this.Controls.Add(this.sudokuMakerDisplay1);
             this.Name = "Form1";
             this.Text = "Form1";
             this.ResumeLayout(false);
@@ -55,7 +57,7 @@
 
         #endregion
 
-        private SpecialControls.MapDisplay mapDisplay1;
+        private SpecialControls.SudokuMakerDisplay sudokuMakerDisplay1;
     }
 }
 

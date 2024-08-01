@@ -1,5 +1,4 @@
 ﻿using Sudoku.MapLogic;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,7 +18,7 @@ namespace Sudoku.MapPlayingLogic
         public MapInterface(Map map) 
         {
             _cells = map.GetCells();
-            _areas = map.GetAreas();
+            _areas = map.GetGroups();
             _width = map.Width;
             _height = map.Height;
             _type = map.Type;

@@ -43,10 +43,18 @@ namespace Sudoku.MapLogic
         private const string _areaIsAlreadyExistMessage = "Область с указанным идентификатором уже существует";
         private const string _areaNotFoundMessage = "Область с полученным идентификатором не найдена";
         private const string _creatingInterfaceWithConflictsMessage = "Нельзя получить интерфейс карты с конфликтными ячейками";
+        private const string _incorrectSizesForCopyOperationMessage = "Копирование невозможно, если карты имеют разные размеры";
+        private string _name;
         private MapTypes _type;
         private readonly List<Cell> _cells = new List<Cell>();
         private readonly List<Conflict> _conflicts = new List<Conflict>();
-        private readonly List<Area> _areas = new List<Area>();
+        private readonly List<Group> _groups = new List<Group>();
+
+        private readonly List<Group> _selectedGroups = new List<Group>();
+
+        private readonly List<MapSave> _saves = new List<MapSave>();
+        private int _savesCapacity;
+        private int _saveInd;
 
         /// <summary>
         /// Создает карту с указанными размерами
@@ -61,9 +69,12 @@ namespace Sudoku.MapLogic
             if (heght < MinLength)
                 heght = MinLength;
 
-            InitializeCells(width, heght);
             Width = width;
             Height = heght;
+            InitializeCells();
+
+            _savesCapacity = 15;
+            Save();
         }
 
         /// <summary>
@@ -90,35 +101,75 @@ namespace Sudoku.MapLogic
         /// </summary>
         public int ConflictsCount => _conflicts.Count;
 
-        private Cell this[int row, int column]
+        public int SavesCapacity
         {
-            get { return _cells.Find(
-                c => c.Row == row && c.Column == column); }
+            get { return _savesCapacity; }
+            set 
+            {
+                if (value > 2 && value < 30)
+                {
+                    if (_savesCapacity > value)
+                    {
+                        _saves.RemoveRange(0, _savesCapacity - value);
+                    }
+
+                    _savesCapacity = value;
+                }
+                    
+            }
+        }
+
+        private void InitializeCells()
+        {
+            for (int row = 0; row < Height; row++)
+            {
+                for (int col = 0; col < Width; col++)
+                {
+                    Cell cell = new Cell(row, col);
+                    _cells.Add(cell);
+                }
+            }
         }
 
         /// <summary>
-        /// Записывает новое значение в заданную ячейку или вызывает
-        /// ArgumentException, если такая ячейка не существует.
+        /// Записывает новое значение во все выделенные ячейки
         /// </summary>
         /// <param name="position"></param>
         /// <param name="value"></param>
-        public void Write(int row, int column, int value)
+        public void Write(int value)
         {
-            Cell cell = FindCell(row, column);
-            UpdateConflicts(cell, value);
-            cell.Correct = value;
+            if (_saves.Count == 0)
+                Save();
+
+            foreach (Cell cell in _cells)
+            {
+                if (cell.IsSelected)
+                {
+                    cell.Correct = value;
+                    UpdateConflicts(cell, value);
+                }
+            }
+
+            Save();
         }
 
         /// <summary>
-        /// Изменяет выделение заданной ячейки или вызывает
-        /// ArgumentException, если такая ячейка не существует.
+        /// Записывает в заданную ячейку значение или вызывает исключение,
+        /// если ячейки не существует
         /// </summary>
-        /// <param name="position"></param>
-        /// <param name="selection"></param>
-        public void ChangeSelection(int row, int column, bool selection)
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        /// <param name="value"></param>
+        public void Write(int row, int column, int value)
         {
+            if (_saves.Count == 0)
+                Save();
+
             Cell cell = FindCell(row, column);
-            cell.IsSelected = selection;
+            cell.Correct = value;
+            UpdateConflicts(cell, value);
+
+            Save();
         }
 
         /// <summary>
@@ -127,10 +178,14 @@ namespace Sudoku.MapLogic
         /// </summary>
         /// <param name="position"></param>
         /// <param name="availability"></param>
-        public void ChangeAvailability(int row, int column, bool availability)
+        public void ChangeAvailability(int row, int column)
         {
+            if (_saves.Count == 0)
+                Save();
+
             Cell cell = FindCell(row, column);
-            cell.IsAvailable = availability;
+            cell.IsAvailable = !cell.IsAvailable;
+            Save();
         }
 
         /// <summary>
@@ -141,38 +196,230 @@ namespace Sudoku.MapLogic
         /// <exception cref="ArgumentException"></exception>
         public void CreateGroup(int row, int column, int id, GroupType type)
         {
-            if (_areas.Find(a => a.ID == id) != null)
+            if (_saves.Count == 0)
+                Save();
+
+            if (_groups.Find(a => a.ID == id) != null)
                 throw new ArgumentException(_areaIsAlreadyExistMessage);
 
             Cell cell = FindCell(row, column);
-            Area area = new Area(id, this);
-            area.AddCell(cell);
-            area.Type = type;
-            _areas.Add(area);
+            Group group = new Group(id, this);
+            group.AddCell(cell);
+            group.Type = type;
+            _groups.Add(group);
+
+            Save();
         }
 
         /// <summary>
-        /// Удаляет область
+        /// Удаляет группу
         /// </summary>
         /// <param name="id"></param>
-        public void RemoveArea(int id)
+        public void RemoveGroup(int id)
         {
-            Area area = FindArea(id);
+            if (_saves.Count == 0)
+                Save();
+
+            Group area = FindGroup(id, createNew: false);
             area.Clear();
-            _areas.Remove(area);
+            _groups.Remove(area);
+            Save();
         }
 
         /// <summary>
-        /// Добавляет ячейку в область, если эта ячейка может быть добавлена
+        /// Добавляет все выделенные ячейки в группу, которая была выделена последней
+        /// </summary>
+        public void AddSelectedToGroup()
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Group group = _selectedGroups.LastOrDefault();
+            if (group != null)
+            {
+                foreach (Cell cell in _cells)
+                {
+                    if (cell.IsSelected)
+                        group.AddCell(cell);
+                }
+            }
+
+            Save();
+        }
+
+        /// <summary>
+        /// Удаляет все выделенные ячейки из группы, которая была выделена последней
+        /// </summary>
+        public void RemoveSelectedFromGroup()
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Group group = _selectedGroups.LastOrDefault();
+            if (group != null)
+            {
+                foreach (Cell cell in _cells)
+                {
+                    if (cell.IsSelected)
+                        group.RemoveCell(cell);
+                }
+            }
+
+            Save();
+        }
+
+        /// <summary>
+        /// Добавляет ячейку в группу, если эта ячейка может быть добавлена.
+        /// Создает новую группу, если полученный идентификатор не занят
         /// </summary>
         /// <param name="position"></param>
         /// <param name="id"></param>
-        public void AddCellToArea(int row, int column, int id)
+        public void AddCellToGroup(int row, int column, int id)
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Cell cell = FindCell(row, column);
+            Group group = FindGroup(id, createNew: true);
+            group.AddCell(cell);
+            Save();
+        }
+
+        /// <summary>
+        /// Удаляет ячейку из группы, если группа и ячейка существуют
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        /// <param name="id"></param>
+        public void RemoveCellFromGroup(int row, int column, int id)
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Cell cell = FindCell(row, column);
+            Group group = FindGroup(id, createNew: false);
+            group.RemoveCell(cell);
+            if (group.Cells.Count == 0)
+            {
+                _groups.Remove(group);
+                _selectedGroups.Remove(group);
+            }
+
+            Save();
+        }
+
+        /// <summary>
+        /// Изменяет тип группы на полученный, если группа существует
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="type"></param>
+        public void ChangeGroupType(int id, GroupType type)
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Group group = FindGroup(id, createNew: false);
+            group.Type = type;
+            Save();
+        }
+
+        /// <summary>
+        /// Изменяет выделение заданной ячейки или вызывает
+        /// ArgumentException, если такая ячейка не существует.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        public void ChangeCellSelection(int row, int column)
         {
             Cell cell = FindCell(row, column);
-            Area area = FindArea(id);
+            cell.IsSelected = !cell.IsSelected;
+            var cellGroups = cell.Groups;
+            if (cell.IsSelected)
+            {
+                foreach (Group group in cellGroups)
+                {
+                    _selectedGroups.Remove(group);
+                    _selectedGroups.Add(group);
+                }
+            }
+        }
 
-            area.AddCell(cell);
+        public void GroupSelected(GroupType type)
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            Group group = new Group(_groups.Count, this);
+            group.Type = type;
+            _groups.Add(group);
+            foreach (Cell cell in _cells)
+            {
+                if (cell.IsSelected)
+                {
+                    group.AddCell(cell);
+                }
+            }
+
+            Save();
+        }
+
+        public void ClearSelection()
+        {
+            foreach (var cell in _cells)
+            {
+                cell.IsSelected = false;
+            }
+        }
+
+        /// <summary>
+        /// Очищает текущий экземпляр
+        /// </summary>
+        public void Clear()
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            for (int i = 0; i < _groups.Count; i++)
+            {
+                RemoveGroup(_groups[i].ID);
+            }
+
+            for (int i = 0; i < _cells.Count; i++)
+            {
+                Cell cell = _cells[i];
+                cell.Correct = 0;
+                cell.IsAvailable = true;
+                cell.IsSelected = false;
+            }
+
+            _selectedGroups.Clear();
+            Save();
+        }
+
+        /// <summary>
+        /// Отменяет последнее изменение
+        /// </summary>
+        public void Undo()
+        {
+            if (_saves.Count < 2)
+                return;
+
+            _saveInd--;
+            MapSave save = _saves.ElementAt(_saveInd);
+            save.LoadTo(this);
+        }
+
+        /// <summary>
+        /// Восстанавливает последнее изменение
+        /// </summary>
+        public void Redo()
+        {
+            if (_saveInd == _saves.Count - 1)
+                return;
+
+            _saveInd++;
+            MapSave save = _saves.ElementAt(_saveInd);
+            save.LoadTo(this);
         }
 
         /// <summary>
@@ -194,15 +441,15 @@ namespace Sudoku.MapLogic
         /// Возвращает все области карты
         /// </summary>
         /// <returns></returns>
-        public List<GroupInterface> GetAreas()
+        public List<GroupInterface> GetGroups()
         {
-            List<GroupInterface> areas = new List<GroupInterface>();
-            foreach (Area area in _areas)
+            List<GroupInterface> groups = new List<GroupInterface>();
+            foreach (Group group in _groups)
             {
-                areas.Add(area.GetInterface());
+                groups.Add(group.GetInterface());
             }
 
-            return areas;
+            return groups;
         }
 
         /// <summary>
@@ -212,7 +459,7 @@ namespace Sudoku.MapLogic
         /// <returns></returns>
         public List<CellInterface> GetCellsInArea(int id)
         {
-            Area area = FindArea(id);
+            Group area = FindGroup(id, createNew: false);
             List<CellInterface> cells = new List<CellInterface>();
 
             foreach (Cell cell in area.Cells)
@@ -239,21 +486,39 @@ namespace Sudoku.MapLogic
         }
 
         /// <summary>
-        /// Очищает текущий экземпляр
+        /// Создает копию текущего объекта и возвращает ее.
         /// </summary>
-        public void Clear()
+        /// <returns></returns>
+        public Map Clone()
         {
-            for (int i = 0; i < _areas.Count; i++)
-            {
-                RemoveArea(_areas[i].ID);
-            }
+            Map clone = new Map(Width, Height);
+            CopyTo(clone);
+            return clone;
+        }
 
-            for (int i = 0; i < _cells.Count; i++)
+        /// <summary>
+        /// Копирует содержимое текущего экземпляра в переданный.
+        /// Вызывает исключение, если карты имеют различные размеры.
+        /// </summary>
+        /// <param name="map"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void CopyTo(Map map)
+        {
+            if (map.Width != Width || map.Height != Height)
+                throw new InvalidOperationException(_incorrectSizesForCopyOperationMessage);
+            
+            map.Clear();
+            foreach (Cell cell in _cells)
             {
-                Cell cell = _cells[i];
-                cell.Correct = 0;
-                cell.IsAvailable = true;
-                cell.IsSelected = false;
+                map.Write(cell.Row, cell.Column, cell.Correct);
+                if (cell.IsSelected)
+                    map.ChangeCellSelection(cell.Row, cell.Column);
+                if (!cell.IsAvailable)
+                    map.ChangeAvailability(cell.Row, cell.Column);
+                foreach (Group group in cell.Groups)
+                {
+                    map.AddCellToGroup(cell, group.ID);
+                }
             }
         }
 
@@ -271,15 +536,11 @@ namespace Sudoku.MapLogic
             CreateTestAreas();
         }
 
-        private void InitializeCells(int width, int heght)
+        private Cell this[int row, int column]
         {
-            for (int row = 0; row < heght; row++)
+            get
             {
-                for (int col = 0; col < width; col++)
-                {
-                    Cell cell = new Cell(row, col);
-                    _cells.Add(cell);
-                }
+                return _cells.Find(c => c.Row == row && c.Column == column);
             }
         }
 
@@ -290,13 +551,25 @@ namespace Sudoku.MapLogic
 
         private void AddCellToGroup(Cell cell, int id)
         {
-            AddCellToArea(cell.Row, cell.Column, id);
+            AddCellToGroup(cell.Row, cell.Column, id);
         }
 
-        private Area FindArea(int id)
+        private Group FindGroup(int id, bool createNew)
         {
-            return _areas.Find(c => c.ID == id)
-                ?? throw new ArgumentException(_areaNotFoundMessage);
+            Group group = _groups.Find(c => c.ID == id);
+            if (group == null)
+            {
+                if (createNew)
+                {
+                    group = new Group(NextFreeNum(_groups.Select(g => g.ID)), this);
+                    _groups.Add(group);
+                    return group;
+                }
+
+                else throw new ArgumentException(_areaNotFoundMessage);
+            }
+
+            return group;
         }
 
         private Cell FindCell(int row, int column)
@@ -366,40 +639,34 @@ namespace Sudoku.MapLogic
                 // из-за целочисленного деления cell.Row / 3 * 3 не лишено смысла
                 int id = cell.Column / 3 + cell.Row / 3 * 3;
 
-                if (_areas.Find(a => a.ID == id) == null)
+                if (_groups.Find(a => a.ID == id) == null)
                     CreateArea(cell, id, GroupType.Basic);
 
                 AddCellToGroup(cell, id);
             }
+        }
 
-            CreateGroup(row: 2, column: 2, id: 9, GroupType.Sum);
-            AddCellToGroup(this[3, 2], 9);
-            AddCellToGroup(this[2, 3], 9);
+        private void Save()
+        {
+            if (_saves.Count == _savesCapacity)
+            {
+                _saves.Remove(_saves.First());
+            }
 
-            CreateGroup(row: 5, column: 1, id: 10, GroupType.Sum);
-            AddCellToGroup(this[7, 1], 10);
+            MapSave save = new MapSave(this);
+            _saves.Add(save);
+            _saveInd = _saves.Count - 1;
+        }
 
-            CreateGroup(row: 6, column: 6, id: 11, GroupType.Sum);
-            AddCellToGroup(this[6, 5], 11);
-            AddCellToGroup(this[5, 6], 11);
+        private int NextFreeNum(IEnumerable<int> ints)
+        {
+            for (int i = 0; i < int.MaxValue; i++)
+            {
+                if (!ints.Contains(i))
+                    return i;
+            }
 
-            CreateGroup(row: 1, column: 7, id: 12, GroupType.Sum);
-            AddCellToGroup(this[1, 6], 12);
-            AddCellToGroup(this[1, 5], 12);
-            AddCellToGroup(this[2, 6], 12);
-            AddCellToGroup(this[2, 5], 12);
-            AddCellToGroup(this[2, 7], 12);
-            AddCellToGroup(this[3, 7], 12);
-            AddCellToGroup(this[3, 6], 12);
-
-            CreateGroup(row: 3, column: 3, id: 13, GroupType.Sum);
-            AddCellToGroup(this[4, 3], 13);
-            AddCellToGroup(this[5, 3], 13);
-            AddCellToGroup(this[5, 4], 13);
-            AddCellToGroup(this[5, 5], 13);
-            AddCellToGroup(this[4, 5], 13);
-            AddCellToGroup(this[3, 5], 13);
-            AddCellToGroup(this[3, 4], 13);
+            throw new InvalidOperationException();
         }
 
         private void UpdateConflicts(Cell target, int value)
@@ -451,7 +718,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            foreach (Area area in target.Areas)
+            foreach (Group area in target.Groups)
             {
                 foreach (Cell cur in area.Cells)
                 {
@@ -483,7 +750,7 @@ namespace Sudoku.MapLogic
         {
             private int _correct;
 
-            private readonly List<Area> _areas = new List<Area>();
+            private readonly List<Group> _areas = new List<Group>();
 
             public Cell(int row, int column) 
             {
@@ -502,7 +769,6 @@ namespace Sudoku.MapLogic
                 }
             }
 
-
             public int Row { get; set; }
 
             public int Column { get; set; }
@@ -511,9 +777,9 @@ namespace Sudoku.MapLogic
 
             public bool IsSelected { get; set; }
 
-            public IReadOnlyCollection<Area> Areas { get { return _areas; } }
+            public IReadOnlyCollection<Group> Groups { get { return _areas; } }
 
-            public void AddArea(Area area)
+            public void AddGroup(Group area)
             {
                 if (!_areas.Contains(area))
                 {
@@ -522,19 +788,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            /*public void AddArea(Area area)
-            {
-                if (!_areas.Contains(area))
-                {
-                    if (area.IsPossibleToAdd(this))
-                    {
-                        _areas.Add(area);
-                        area.AddCell(this);
-                    }
-                }
-            }*/
-
-            public void RemoveArea(Area area)
+            public void RemoveGroup(Group area)
             {
                 if (_areas.Contains(area))
                 {
@@ -547,13 +801,15 @@ namespace Sudoku.MapLogic
             {
                 List<GroupInterface> areas = new List<GroupInterface>();
 
-                foreach (Area area in _areas)
+                foreach (Group area in _areas)
                 {
                     areas.Add(area.GetInterface());
                 }
 
-                return new CellInterface(Correct, Row, Column,
+                CellInterface res = new CellInterface(Correct, Row, Column,
                     IsAvailable, areas);
+                res.IsSelected = IsSelected;
+                return res;
             }
         }
 
@@ -569,6 +825,29 @@ namespace Sudoku.MapLogic
             public List<Cell> Cells { get { return _cells; } }
 
             public int ConflictValue => _cells.First().Correct;
+
+            public ConflictInterface GetInterface()
+            {
+                List<CellInterface> cells = new List<CellInterface>();
+                foreach (Cell cell in _cells)
+                {
+                    cells.Add(cell.GetInterface());
+                }
+
+                return new ConflictInterface(cells);
+            }
+        }
+
+        private class ConflictInterface
+        {
+            private IReadOnlyCollection<CellInterface> _cells;
+
+            public ConflictInterface(IReadOnlyCollection<CellInterface> cells)
+            {
+                _cells = cells;
+            }
+
+            public int ConflictValue => _cells.First().Correct;
         }
 
         public enum GroupType
@@ -577,13 +856,13 @@ namespace Sudoku.MapLogic
             Sum
         }
 
-        private class Area
+        private class Group
         {
             private readonly int _id;
             private readonly List<Cell> _cells = new List<Cell>();
             private Map _map;
 
-            public Area(int id, Map map)
+            public Group(int id, Map map)
             {
                 _map = map;
                 _id = id;
@@ -598,12 +877,14 @@ namespace Sudoku.MapLogic
 
             public GroupType Type { get; set; }
 
+            public bool IsSelected => _cells.Where(c => c.IsSelected).Count() > 0;
+
             public bool AddCell(Cell cell)
             {
                 if (!_cells.Contains(cell))
                 {
                     _cells.Add(cell);
-                    cell.AddArea(this);
+                    cell.AddGroup(this);
                     _map.UpdateConflicts(cell, cell.Correct);
                     return true;
                 }
@@ -611,46 +892,14 @@ namespace Sudoku.MapLogic
                 return false;
             }
 
-            /*public bool AddCell(Cell cell)
-            {
-                if (!_cells.Contains(cell))
-                {
-                    if (_cells.Count == 0 || IsPossibleToAdd(cell))
-                    {
-                        _cells.Add(cell);
-                        cell.AddArea(this);
-                        _map.UpdateConflicts(cell, cell.Correct);
-                        return true;
-                    }
-                }
-
-                return false;
-            }*/
-
             public void RemoveCell(Cell cell)
             {
                 if (_cells.Contains(cell))
                 {
                     _cells.Remove(cell);
-                    cell.RemoveArea(this);
+                    cell.RemoveGroup(this);
                 }
             }
-
-            /*public bool IsPossibleToAdd(Cell target)
-            {
-                foreach (Cell cell in _cells)
-                {
-                    if (Math.Abs(cell.Column - target.Column) < 2
-                        && cell.Row == target.Row)
-                        return true;
-
-                    if (Math.Abs(cell.Row - target.Row) < 2
-                        && cell.Column == target.Column)
-                        return true;
-                }
-
-                return false;
-            }*/
 
             public void Clear()
             {
@@ -663,7 +912,9 @@ namespace Sudoku.MapLogic
 
             public GroupInterface GetInterface()
             {
-                return new GroupInterface(ID, Type, Sum);
+                GroupInterface res = new GroupInterface(ID, Type, Sum);
+                res.IsSelected = IsSelected;
+                return res;
             }
         }
 
@@ -676,6 +927,42 @@ namespace Sudoku.MapLogic
         private class CellRule
         {
 
+        }
+
+        private class MapSave
+        {
+            private List<CellInterface> _cells = new List<CellInterface>();
+            private List<GroupInterface> _groups = new List<GroupInterface>();
+            private List<GroupInterface> _selectedGroups = new List<GroupInterface>();
+            private List<ConflictInterface> _conflicts = new List<ConflictInterface>();
+
+            public MapSave(Map map)
+            {
+                _cells = map.GetCells();
+                _groups = map.GetGroups();
+                foreach (Group g in map._selectedGroups)
+                {
+                    _selectedGroups.Add(g.GetInterface());
+                }
+                _conflicts = map._conflicts;
+            }
+
+            public int Height => _cells.Select(c => c.Row).Max();
+
+            public int Width => _cells.Select(c => c.Column).Max();
+
+            public List<CellInterface> Cells => _cells;
+
+            public List<GroupInterface> Groups => _groups;
+
+            public List<ConflictInterface> Conflicts => _conflicts;
+
+            public List<GroupInterface> SelectedGroups => _selectedGroups;
+
+            public void LoadTo(Map map)
+            {
+                ?
+            }
         }
     }
 }

@@ -56,13 +56,14 @@
     <Compile Include="MapLogic\GroupInterface.cs" />
     <Compile Include="MapLogic\CellInterface.cs" />
     <Compile Include="MapLogic\Map.cs" />
+    <Compile Include="MapLogic\MapChanging.cs" />
     <Compile Include="MapPlayingLogic\MapInterface.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SpecialControls\MapDisplay.cs">
+    <Compile Include="SpecialControls\SudokuPlayerDisplay.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="SpecialControls\MapMaker.cs">
+    <Compile Include="SpecialControls\SudokuMakerDisplay.cs">
       <SubType>Component</SubType>
     </Compile>
     <EmbeddedResource Include="Form1.resx">

@@ -82,10 +82,10 @@ namespace Sudoku.MapGraphics
             {
                 Width = _defaultSumAreaPenWidth + 1,
             };
-            _cellSelectionBrush = new SolidBrush(Color.FromArgb(50, 40, 240, 10));
+            _cellSelectionBrush = new SolidBrush(Color.FromArgb(40, 40, 240, 10));
             _cellSelectionPen = new Pen(Color.FromArgb(150, 50, 120, 10))
             {
-                Width = 4f
+                Width = 3f
             };
             _rowsColsSelectionBrush = new SolidBrush(Color.FromArgb(20, 0, 190, 220));
             _sumAreaSelectionBrush = new SolidBrush(Color.FromArgb(30, 0, 250, 50));
@@ -116,10 +116,9 @@ namespace Sudoku.MapGraphics
             g.Clear(Color.White);
             ConstructBase(g.ClipBounds.Size, _mapSize);
             DrawGrid(g);
-            var selectedCells = cells.Where(c => c.IsSelected);
             DrawSelections(g, map.GetCellsInArea, cells, false, false, false);
             DrawCellsContent(g, cells);
-            DrawAreas(g, map.GetAreas(), map.GetCellsInArea);
+            DrawAreas(g, map.GetGroups(), map.GetCellsInArea);
         }
 
         /// <summary>
@@ -134,7 +133,6 @@ namespace Sudoku.MapGraphics
                 throw new ArgumentException();
 
             _mapSize = new Size(map.Width, map.Height);
-            g.Clear(Color.White);
             ConstructBase(g.ClipBounds.Size, _mapSize);
             DrawGrid(g);
             DrawAreas(g, map.Areas, map.GetCellsByArea);
@@ -156,6 +154,24 @@ namespace Sudoku.MapGraphics
             int row = (int)((y - _imagePosition.Y) / _cellSize);
 
             return new Point(col, row);
+        }
+
+        public List<Point> GetCells(RectangleF rect, Size map, Size display)
+        {
+            List<Point> cells = new List<Point>();
+            ConstructBase(display, map);
+            int colBeg = (int)((rect.X - _imagePosition.X) / _cellSize);
+            int rowBeg = (int)((rect.Y - _imagePosition.Y) / _cellSize);
+            int colEnd = (int)((rect.X + rect.Width - _imagePosition.X) / _cellSize);
+            int rowEnd = (int)((rect.Y + rect.Height - _imagePosition.Y) / _cellSize);
+            for (int r = rowBeg; r <= rowEnd; r++)
+            {
+                for (int c = colBeg; c <= colEnd; c++)
+                {
+                    cells.Add(new Point(r, c));
+                }
+            }
+            return cells;
         }
 
         private void ConstructBase(SizeF display, Size map)
@@ -410,6 +426,8 @@ namespace Sudoku.MapGraphics
         private List<List<PointF>> Arrange(Dictionary<PointF, NextDirection> points)
         {
             List<List<PointF>> outline = new List<List<PointF>>();
+            if (points == null || points.Count == 0)
+                return outline;
             List<PointF> path = new List<PointF>();
             outline.Add(path);
             path.Add(points.First().Key);
@@ -491,7 +509,8 @@ namespace Sudoku.MapGraphics
             return PointF.Empty;
         }
 
-        private void DrawSelections(Graphics g, Func<int, List<CellInterface>> areaCells, IEnumerable<CellInterface> cells, 
+        private void DrawSelections(Graphics g, Func<int, List<CellInterface>> areaCells, 
+            IEnumerable<CellInterface> cells, 
             bool selectRowsAndCols, bool selectSameContent, bool selectAreas)
         {
             var selected = cells.Where(c => c.IsSelected);
