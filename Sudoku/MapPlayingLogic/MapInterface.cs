@@ -1,6 +1,7 @@
 ﻿using Sudoku.MapLogic;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Sudoku.MapPlayingLogic
 {
@@ -13,7 +14,7 @@ namespace Sudoku.MapPlayingLogic
         private readonly int _width;
         private readonly int _height;
         private readonly MapTypes _type;
-        private readonly List<AreaInterface> _areas;
+        private readonly List<GroupInterface> _areas;
 
         public MapInterface(Map map) 
         {
@@ -26,7 +27,7 @@ namespace Sudoku.MapPlayingLogic
 
         public IReadOnlyCollection<CellInterface> Cells { get { return _cells; } }
 
-        public IReadOnlyCollection<AreaInterface> Areas { get { return _areas; } }
+        public IReadOnlyCollection<GroupInterface> Areas { get { return _areas; } }
 
         public CellInterface this[int row, int column]
         {
@@ -45,7 +46,7 @@ namespace Sudoku.MapPlayingLogic
         /// </summary>
         /// <param name="areaId"></param>
         /// <returns></returns>
-        public List<CellInterface> GetAreaCells(int areaId)
+        public List<CellInterface> GetCellsByArea(int areaId)
         {
             List<CellInterface> cells = new List<CellInterface>();
 
@@ -63,7 +64,25 @@ namespace Sudoku.MapPlayingLogic
 
         public void ChangeCellSelection(int row, int column)
         {
-            this[row, column].IsSelected = !this[row, column].IsSelected;
+            CellInterface cell = this[row, column];
+            cell.IsSelected = !cell.IsSelected;
+            foreach (GroupInterface area in cell.Areas)
+            {
+                if (cell.IsSelected)
+                {
+                    _areas.Find(a => a.ID == area.ID).IsSelected = true;
+                    area.IsSelected = true;
+                }
+
+                else
+                {
+                    if (GetCellsByArea(area.ID).Where(c => c.IsSelected).Count() == 0)
+                    {
+                        _areas.Find(a => a.ID == area.ID).IsSelected = false;
+                        area.IsSelected = false;
+                    }
+                }
+            }
         }
 
         public void ClearSelection()
@@ -71,6 +90,12 @@ namespace Sudoku.MapPlayingLogic
             foreach (var cell in Cells)
             {
                 cell.IsSelected = false;
+
+                foreach (var area in cell.Areas)
+                {
+                    _areas.Find(a => a.ID == area.ID).IsSelected = false;
+                    area.IsSelected = false;
+                }
             }
         }
 

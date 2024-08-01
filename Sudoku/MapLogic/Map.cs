@@ -139,7 +139,7 @@ namespace Sudoku.MapLogic
         /// <param name="position"></param>
         /// <param name="id"></param>
         /// <exception cref="ArgumentException"></exception>
-        public void CreateArea(int row, int column, int id, AreaType type)
+        public void CreateGroup(int row, int column, int id, GroupType type)
         {
             if (_areas.Find(a => a.ID == id) != null)
                 throw new ArgumentException(_areaIsAlreadyExistMessage);
@@ -194,9 +194,9 @@ namespace Sudoku.MapLogic
         /// Возвращает все области карты
         /// </summary>
         /// <returns></returns>
-        public List<AreaInterface> GetAreas()
+        public List<GroupInterface> GetAreas()
         {
-            List<AreaInterface> areas = new List<AreaInterface>();
+            List<GroupInterface> areas = new List<GroupInterface>();
             foreach (Area area in _areas)
             {
                 areas.Add(area.GetInterface());
@@ -283,12 +283,12 @@ namespace Sudoku.MapLogic
             }
         }
 
-        private void CreateArea(Cell cell, int id, AreaType type)
+        private void CreateArea(Cell cell, int id, GroupType type)
         {
-            CreateArea(cell.Row, cell.Column, id, type);
+            CreateGroup(cell.Row, cell.Column, id, type);
         }
 
-        private void AddCellToArea(Cell cell, int id)
+        private void AddCellToGroup(Cell cell, int id)
         {
             AddCellToArea(cell.Row, cell.Column, id);
         }
@@ -367,36 +367,39 @@ namespace Sudoku.MapLogic
                 int id = cell.Column / 3 + cell.Row / 3 * 3;
 
                 if (_areas.Find(a => a.ID == id) == null)
-                    CreateArea(cell, id, AreaType.Basic);
+                    CreateArea(cell, id, GroupType.Basic);
 
-                AddCellToArea(cell, id);
+                AddCellToGroup(cell, id);
             }
 
-            CreateArea(row: 2, column: 2, id: 9, AreaType.Sum);
-            AddCellToArea(this[3, 2], 9);
-            AddCellToArea(this[2, 3], 9);
+            CreateGroup(row: 2, column: 2, id: 9, GroupType.Sum);
+            AddCellToGroup(this[3, 2], 9);
+            AddCellToGroup(this[2, 3], 9);
 
-            CreateArea(row: 6, column: 6, id: 11, AreaType.Sum);
-            AddCellToArea(this[6, 5], 11);
-            AddCellToArea(this[5, 6], 11);
+            CreateGroup(row: 5, column: 1, id: 10, GroupType.Sum);
+            AddCellToGroup(this[7, 1], 10);
 
-            CreateArea(row: 1, column: 7, id: 12, AreaType.Sum);
-            AddCellToArea(this[1, 6], 12);
-            AddCellToArea(this[1, 5], 12);
-            AddCellToArea(this[2, 6], 12);
-            AddCellToArea(this[2, 5], 12);
-            AddCellToArea(this[2, 7], 12);
-            AddCellToArea(this[3, 7], 12);
-            AddCellToArea(this[3, 6], 12);
+            CreateGroup(row: 6, column: 6, id: 11, GroupType.Sum);
+            AddCellToGroup(this[6, 5], 11);
+            AddCellToGroup(this[5, 6], 11);
 
-            CreateArea(row: 3, column: 3, id: 13, AreaType.Sum);
-            AddCellToArea(this[4, 3], 13);
-            AddCellToArea(this[5, 3], 13);
-            AddCellToArea(this[5, 4], 13);
-            AddCellToArea(this[5, 5], 13);
-            AddCellToArea(this[4, 5], 13);
-            AddCellToArea(this[3, 5], 13);
-            AddCellToArea(this[3, 4], 13);
+            CreateGroup(row: 1, column: 7, id: 12, GroupType.Sum);
+            AddCellToGroup(this[1, 6], 12);
+            AddCellToGroup(this[1, 5], 12);
+            AddCellToGroup(this[2, 6], 12);
+            AddCellToGroup(this[2, 5], 12);
+            AddCellToGroup(this[2, 7], 12);
+            AddCellToGroup(this[3, 7], 12);
+            AddCellToGroup(this[3, 6], 12);
+
+            CreateGroup(row: 3, column: 3, id: 13, GroupType.Sum);
+            AddCellToGroup(this[4, 3], 13);
+            AddCellToGroup(this[5, 3], 13);
+            AddCellToGroup(this[5, 4], 13);
+            AddCellToGroup(this[5, 5], 13);
+            AddCellToGroup(this[4, 5], 13);
+            AddCellToGroup(this[3, 5], 13);
+            AddCellToGroup(this[3, 4], 13);
         }
 
         private void UpdateConflicts(Cell target, int value)
@@ -514,13 +517,22 @@ namespace Sudoku.MapLogic
             {
                 if (!_areas.Contains(area))
                 {
+                    _areas.Add(area);
+                    area.AddCell(this);
+                }
+            }
+
+            /*public void AddArea(Area area)
+            {
+                if (!_areas.Contains(area))
+                {
                     if (area.IsPossibleToAdd(this))
                     {
                         _areas.Add(area);
                         area.AddCell(this);
                     }
                 }
-            }
+            }*/
 
             public void RemoveArea(Area area)
             {
@@ -533,7 +545,7 @@ namespace Sudoku.MapLogic
 
             public CellInterface GetInterface()
             {
-                List<AreaInterface> areas = new List<AreaInterface>();
+                List<GroupInterface> areas = new List<GroupInterface>();
 
                 foreach (Area area in _areas)
                 {
@@ -559,7 +571,7 @@ namespace Sudoku.MapLogic
             public int ConflictValue => _cells.First().Correct;
         }
 
-        public enum AreaType
+        public enum GroupType
         {
             Basic,
             Sum
@@ -575,7 +587,7 @@ namespace Sudoku.MapLogic
             {
                 _map = map;
                 _id = id;
-                Type = AreaType.Basic;
+                Type = GroupType.Basic;
             }
 
             public int ID { get { return _id; } }
@@ -584,9 +596,22 @@ namespace Sudoku.MapLogic
 
             public int Sum => _cells.Sum(c => c.Correct);
 
-            public AreaType Type { get; set; }
+            public GroupType Type { get; set; }
 
             public bool AddCell(Cell cell)
+            {
+                if (!_cells.Contains(cell))
+                {
+                    _cells.Add(cell);
+                    cell.AddArea(this);
+                    _map.UpdateConflicts(cell, cell.Correct);
+                    return true;
+                }
+
+                return false;
+            }
+
+            /*public bool AddCell(Cell cell)
             {
                 if (!_cells.Contains(cell))
                 {
@@ -600,7 +625,7 @@ namespace Sudoku.MapLogic
                 }
 
                 return false;
-            }
+            }*/
 
             public void RemoveCell(Cell cell)
             {
@@ -611,7 +636,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            public bool IsPossibleToAdd(Cell target)
+            /*public bool IsPossibleToAdd(Cell target)
             {
                 foreach (Cell cell in _cells)
                 {
@@ -625,7 +650,7 @@ namespace Sudoku.MapLogic
                 }
 
                 return false;
-            }
+            }*/
 
             public void Clear()
             {
@@ -636,15 +661,10 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            public AreaInterface GetInterface()
+            public GroupInterface GetInterface()
             {
-                return new AreaInterface(ID, Type, Sum);
+                return new GroupInterface(ID, Type, Sum);
             }
-        }
-
-        private class Group
-        {
-
         }
 
         private enum CellRulesType

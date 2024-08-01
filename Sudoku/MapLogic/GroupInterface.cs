@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace Sudoku.MapLogic
 {
-    internal class AreaInterface
+    internal class GroupInterface
     {
         private int _id;
-        private Map.AreaType _type;
+        private Map.GroupType _type;
         private int _sum;
 
-        public AreaInterface(int id, Map.AreaType type, int sum) 
+        public GroupInterface(int id, Map.GroupType type, int sum) 
         {
             _id = id;
             _type = type;
@@ -21,11 +21,13 @@ namespace Sudoku.MapLogic
 
         public int ID { get { return _id; } }
 
-        public Map.AreaType Type { get { return _type; } }
+        public Map.GroupType Type { get { return _type; } }
 
         public int Sum { get { return _sum; } }
 
-        public static bool operator ==(AreaInterface left, AreaInterface right)
+        public bool IsSelected { get; set; }
+
+        public static bool operator ==(GroupInterface left, GroupInterface right)
         {
             if (ReferenceEquals(null, left) && !ReferenceEquals(null, right))
                 return false;
@@ -39,7 +41,7 @@ namespace Sudoku.MapLogic
             return left.Equals(right);
         }
 
-        public static bool operator !=(AreaInterface left, AreaInterface right)
+        public static bool operator !=(GroupInterface left, GroupInterface right)
         {
             if (ReferenceEquals(null, left) && !ReferenceEquals(null, right))
                 return true;
@@ -58,7 +60,7 @@ namespace Sudoku.MapLogic
             if (obj == null)
                 return false;
 
-            if (obj is AreaInterface comp)
+            if (obj is GroupInterface comp)
             {
                 bool id = this.ID == comp.ID;
                 bool type = this.Type == comp.Type;

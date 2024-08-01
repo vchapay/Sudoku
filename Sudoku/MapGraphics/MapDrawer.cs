@@ -38,6 +38,7 @@ namespace Sudoku.MapGraphics
         private readonly Pen _cellSelectionPen;
         private readonly Pen _defaultAreaPen;
         private readonly Pen _sumAreaPen;
+        private readonly Pen _selectedSumAreaPen;
         private readonly Pen _gridPen;
         private readonly Pen _outlinePen;
         private readonly StringFormat _mainCellsTextFormat;
@@ -76,6 +77,10 @@ namespace Sudoku.MapGraphics
                     0.8f,
                     0.4f,
                 }
+            };
+            _selectedSumAreaPen = new Pen(Color.Black)
+            {
+                Width = _defaultSumAreaPenWidth + 1,
             };
             _cellSelectionBrush = new SolidBrush(Color.FromArgb(50, 40, 240, 10));
             _cellSelectionPen = new Pen(Color.FromArgb(150, 50, 120, 10))
@@ -132,8 +137,8 @@ namespace Sudoku.MapGraphics
             g.Clear(Color.White);
             ConstructBase(g.ClipBounds.Size, _mapSize);
             DrawGrid(g);
-            DrawAreas(g, map.Areas, map.GetAreaCells);
-            DrawSelections(g, map.GetAreaCells, map.Cells, true, true, true);
+            DrawAreas(g, map.Areas, map.GetCellsByArea);
+            DrawSelections(g, map.GetCellsByArea, map.Cells, true, true, true);
             DrawCellsContent(g, map.Cells);
         }
 
@@ -237,11 +242,11 @@ namespace Sudoku.MapGraphics
         }
 
         private void DrawAreas(Graphics g, 
-            IReadOnlyCollection<AreaInterface> areas, Func<int, List<CellInterface>> areaCells)
+            IReadOnlyCollection<GroupInterface> areas, Func<int, List<CellInterface>> areaCells)
         {
             foreach (var area in areas)
             {
-                bool isSumArea = area.Type == Map.AreaType.Sum;
+                bool isSumArea = area.Type == Map.GroupType.Sum;
 
                 Pen pen = _defaultAreaPen;
 
@@ -249,7 +254,10 @@ namespace Sudoku.MapGraphics
                 var outline = ConstructOutline(isSumArea, cells);
 
                 if (isSumArea)
-                    pen = _sumAreaPen;
+                    if (area.IsSelected)
+                        pen = _selectedSumAreaPen;
+                    else
+                        pen = _sumAreaPen;
 
                 foreach (var pts in outline)
                 {
@@ -513,7 +521,7 @@ namespace Sudoku.MapGraphics
                         foreach (var area in cell.Areas)
                         {
                             DrawAreaSelection(g, areaCells.Invoke(area.ID),
-                                area.Type == Map.AreaType.Sum);
+                                area.Type == Map.GroupType.Sum);
                         }
                     }
                 }

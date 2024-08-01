@@ -13,7 +13,7 @@ namespace Sudoku.MapLogic
         private readonly int _row;
         private readonly int _column;
         private readonly bool _available;
-        private readonly List<AreaInterface> _areas;
+        private readonly List<GroupInterface> _areas;
         private readonly HashSet<int> _notes = new HashSet<int>();
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace Sudoku.MapLogic
         /// <param name="areas"></param>
         public CellInterface(int correct, 
             int row, int column, bool available,
-            List<AreaInterface> areas)
+            List<GroupInterface> areas)
         {
             _correct = correct;
             _row = row;
@@ -70,7 +70,7 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Области, в которые входит ячейка
         /// </summary>
-        public IReadOnlyCollection<AreaInterface> Areas { get { return _areas; } }
+        public IReadOnlyCollection<GroupInterface> Areas { get { return _areas; } }
 
         /// <summary>
         /// Заметки карандашом в ячейке

@@ -53,7 +53,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="MapGraphics\MapDrawer.cs" />
-    <Compile Include="MapLogic\AreaInterface.cs" />
+    <Compile Include="MapLogic\GroupInterface.cs" />
     <Compile Include="MapLogic\CellInterface.cs" />
     <Compile Include="MapLogic\Map.cs" />
     <Compile Include="MapPlayingLogic\MapInterface.cs" />
