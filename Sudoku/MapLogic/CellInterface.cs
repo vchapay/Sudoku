@@ -68,9 +68,9 @@ namespace Sudoku.MapLogic
         public bool IsAvailable { get { return _available; } }
 
         /// <summary>
-        /// Области, в которые входит ячейка
+        /// Группы, в которые входит ячейка
         /// </summary>
-        public IReadOnlyCollection<GroupInterface> Areas { get { return _areas; } }
+        public IReadOnlyCollection<GroupInterface> Groups { get { return _areas; } }
 
         /// <summary>
         /// Заметки карандашом в ячейке

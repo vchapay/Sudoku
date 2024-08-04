@@ -51,7 +51,7 @@ namespace Sudoku.MapPlayingLogic
 
             foreach (var cell in Cells)
             {
-                foreach (var area in cell.Areas)
+                foreach (var area in cell.Groups)
                 {
                     if (area.ID == areaId)
                         cells.Add(cell);
@@ -65,7 +65,7 @@ namespace Sudoku.MapPlayingLogic
         {
             CellInterface cell = this[row, column];
             cell.IsSelected = !cell.IsSelected;
-            foreach (GroupInterface area in cell.Areas)
+            foreach (GroupInterface area in cell.Groups)
             {
                 if (cell.IsSelected)
                 {
@@ -90,7 +90,7 @@ namespace Sudoku.MapPlayingLogic
             {
                 cell.IsSelected = false;
 
-                foreach (var area in cell.Areas)
+                foreach (var area in cell.Groups)
                 {
                     _areas.Find(a => a.ID == area.ID).IsSelected = false;
                     area.IsSelected = false;

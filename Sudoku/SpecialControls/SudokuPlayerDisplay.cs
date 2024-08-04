@@ -2,13 +2,7 @@
 using Sudoku.MapLogic;
 using Sudoku.MapPlayingLogic;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Sudoku.SpecialControls
@@ -45,7 +39,7 @@ namespace Sudoku.SpecialControls
         protected override void OnPaint(PaintEventArgs e)
         {
             e.Graphics.Clear(Color.White);
-            _drawer.Draw(e.Graphics, _dataSource);
+            _drawer.Draw(e.Graphics, ClientRectangle, _dataSource);
         }
 
         protected override void OnResize(EventArgs e)

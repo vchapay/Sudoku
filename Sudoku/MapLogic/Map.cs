@@ -1,6 +1,7 @@
 ﻿using Sudoku.MapPlayingLogic;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
@@ -44,7 +45,6 @@ namespace Sudoku.MapLogic
         private const string _areaNotFoundMessage = "Область с полученным идентификатором не найдена";
         private const string _creatingInterfaceWithConflictsMessage = "Нельзя получить интерфейс карты с конфликтными ячейками";
         private const string _incorrectSizesForCopyOperationMessage = "Копирование невозможно, если карты имеют разные размеры";
-        private string _name;
         private MapTypes _type;
         private readonly List<Cell> _cells = new List<Cell>();
         private readonly List<Conflict> _conflicts = new List<Conflict>();
@@ -96,6 +96,8 @@ namespace Sudoku.MapLogic
 
         public MapTypes Type { get { return _type; } }
 
+        public string Name { get; set; }
+
         /// <summary>
         /// Возвращает число конфликтов между ячейками
         /// </summary>
@@ -119,18 +121,6 @@ namespace Sudoku.MapLogic
             }
         }
 
-        private void InitializeCells()
-        {
-            for (int row = 0; row < Height; row++)
-            {
-                for (int col = 0; col < Width; col++)
-                {
-                    Cell cell = new Cell(row, col);
-                    _cells.Add(cell);
-                }
-            }
-        }
-
         /// <summary>
         /// Записывает новое значение во все выделенные ячейки
         /// </summary>
@@ -141,13 +131,17 @@ namespace Sudoku.MapLogic
             if (_saves.Count == 0)
                 Save();
 
-            foreach (Cell cell in _cells)
+            var selectedCells = GetSelectedCells();
+            foreach (CellInterface cell in selectedCells)
             {
-                if (cell.IsSelected)
-                {
-                    cell.Correct = value;
-                    UpdateConflicts(cell, value);
-                }
+                if (cell.Correct == value)
+                    continue;
+
+                Cell c = this[cell.Row, cell.Column];
+                int oldValue = c.Correct;
+                c.Correct = value;
+                UpdateConflicts(value);
+                UpdateConflicts(oldValue);
             }
 
             Save();
@@ -162,12 +156,17 @@ namespace Sudoku.MapLogic
         /// <param name="value"></param>
         public void Write(int row, int column, int value)
         {
+            Cell cell = FindCell(row, column);
+            if (cell.Correct == value)
+                return;
+
             if (_saves.Count == 0)
                 Save();
 
-            Cell cell = FindCell(row, column);
+            int oldValue = cell.Correct;
             cell.Correct = value;
-            UpdateConflicts(cell, value);
+            UpdateConflicts(value);
+            UpdateConflicts(oldValue);
 
             Save();
         }
@@ -185,6 +184,39 @@ namespace Sudoku.MapLogic
 
             Cell cell = FindCell(row, column);
             cell.IsAvailable = !cell.IsAvailable;
+
+            if (!cell.IsAvailable)
+            {
+                for (int i = 0; i < cell.Groups.Count; i++)
+                {
+                    Group g = cell.Groups.ElementAt(i);
+                    g.RemoveCell(cell);
+                }
+            }
+
+            Save();
+        }
+
+        public void ChangeSelectedAvailability()
+        {
+            if (_saves.Count == 0)
+                Save();
+
+            foreach (Cell cell in _cells)
+            {
+                if (cell.IsSelected)
+                    cell.IsAvailable = !cell.IsAvailable;
+
+                if (!cell.IsAvailable)
+                {
+                    for (int i = 0; i < cell.Groups.Count; i++)
+                    {
+                        Group g = cell.Groups.ElementAt(i);
+                        g.RemoveCell(cell);
+                    }
+                }
+            }
+
             Save();
         }
 
@@ -220,9 +252,9 @@ namespace Sudoku.MapLogic
             if (_saves.Count == 0)
                 Save();
 
-            Group area = FindGroup(id, createNew: false);
-            area.Clear();
-            _groups.Remove(area);
+            Group group = FindGroup(id, createNew: false);
+            group.Clear();
+            _groups.Remove(group);
             Save();
         }
 
@@ -258,10 +290,10 @@ namespace Sudoku.MapLogic
             Group group = _selectedGroups.LastOrDefault();
             if (group != null)
             {
-                foreach (Cell cell in _cells)
+                var cells = GetSelectedCells();
+                foreach (var cell in cells)
                 {
-                    if (cell.IsSelected)
-                        group.RemoveCell(cell);
+                    RemoveCellFromGroup(cell.Row, cell.Column, group.ID);
                 }
             }
 
@@ -299,6 +331,7 @@ namespace Sudoku.MapLogic
             Cell cell = FindCell(row, column);
             Group group = FindGroup(id, createNew: false);
             group.RemoveCell(cell);
+
             if (group.Cells.Count == 0)
             {
                 _groups.Remove(group);
@@ -324,7 +357,27 @@ namespace Sudoku.MapLogic
         }
 
         /// <summary>
-        /// Изменяет выделение заданной ячейки или вызывает
+        /// Возвращает логическое значение, является ли ячейка конфликтной
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        /// <returns></returns>
+        public bool IsCellConflict(int row, int column)
+        {
+            foreach (Conflict conflict in _conflicts)
+            {
+                Cell cell = FindCell(row, column);
+                if (conflict.Cells.Contains(cell))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Изменяет выделение ячейки или вызывает
         /// ArgumentException, если такая ячейка не существует.
         /// </summary>
         /// <param name="row"></param>
@@ -344,12 +397,38 @@ namespace Sudoku.MapLogic
             }
         }
 
+        /// <summary>
+        /// Изменяет выделение ячейки на заданное значение или вызывает
+        /// ArgumentException, если такая ячейка не существует.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        public void ChangeCellSelection(int row, int column, bool selected)
+        {
+            Cell cell = FindCell(row, column);
+            cell.IsSelected = selected;
+            var cellGroups = cell.Groups;
+            if (cell.IsSelected)
+            {
+                foreach (Group group in cellGroups)
+                {
+                    // выношу группу в конец листа выделенных групп
+                    _selectedGroups.Remove(group);
+                    _selectedGroups.Add(group);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Группирует выделенные ячейки в новую группу
+        /// </summary>
+        /// <param name="type"></param>
         public void GroupSelected(GroupType type)
         {
             if (_saves.Count == 0)
                 Save();
 
-            Group group = new Group(_groups.Count, this);
+            Group group = new Group(NextFreeNum(_groups.Select(g => g.ID)), this);
             group.Type = type;
             _groups.Add(group);
             foreach (Cell cell in _cells)
@@ -363,6 +442,9 @@ namespace Sudoku.MapLogic
             Save();
         }
 
+        /// <summary>
+        /// Снимает выделение со всех ячеек
+        /// </summary>
         public void ClearSelection()
         {
             foreach (var cell in _cells)
@@ -401,7 +483,7 @@ namespace Sudoku.MapLogic
         /// </summary>
         public void Undo()
         {
-            if (_saves.Count < 2)
+            if (_saveInd == 0)
                 return;
 
             _saveInd--;
@@ -438,6 +520,30 @@ namespace Sudoku.MapLogic
         }
 
         /// <summary>
+        /// Возвращает ячейку карты или вызывает исключение,
+        /// если такой ячейки не существует
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        /// <returns></returns>
+        public CellInterface GetCell(int row, int column)
+        {
+            return FindCell(row, column).GetInterface();
+        }
+
+        public List<CellInterface> GetSelectedCells()
+        {
+            var cells = new List<CellInterface>();
+            foreach (Cell cell in _cells)
+            {
+                if (cell.IsSelected) 
+                    cells.Add(cell.GetInterface());
+            }
+
+            return cells;
+        }
+
+        /// <summary>
         /// Возвращает все области карты
         /// </summary>
         /// <returns></returns>
@@ -450,6 +556,17 @@ namespace Sudoku.MapLogic
             }
 
             return groups;
+        }
+
+        public List<ConflictInterface> GetConflicts()
+        {
+            List<ConflictInterface> conflicts = new List<ConflictInterface>();
+            foreach (Conflict conflict in _conflicts)
+            {
+                conflicts.Add(conflict.GetInterface());
+            }
+
+            return conflicts;
         }
 
         /// <summary>
@@ -482,6 +599,7 @@ namespace Sudoku.MapLogic
             if (ConflictsCount > 0)
                 throw new InvalidOperationException(_creatingInterfaceWithConflictsMessage);
 
+            ClearSelection();
             return new MapInterface(this);
         }
 
@@ -533,7 +651,20 @@ namespace Sudoku.MapLogic
             int[,] openedCells = GetTestOpenedCellsMap();
             FillTestCellsWithValues(test);
             SetTestOpenedCells(openedCells);
-            CreateTestAreas();
+            CreateTestGroups();
+        }
+
+        private void InitializeCells()
+        {
+            for (int row = 0; row < Height; row++)
+            {
+                for (int col = 0; col < Width; col++)
+                {
+                    Cell cell = new Cell(row, col);
+                    cell.IsAvailable = true;
+                    _cells.Add(cell);
+                }
+            }
         }
 
         private Cell this[int row, int column]
@@ -544,7 +675,7 @@ namespace Sudoku.MapLogic
             }
         }
 
-        private void CreateArea(Cell cell, int id, GroupType type)
+        private void CreateGroup(Cell cell, int id, GroupType type)
         {
             CreateGroup(cell.Row, cell.Column, id, type);
         }
@@ -632,7 +763,7 @@ namespace Sudoku.MapLogic
             }
         }
 
-        private void CreateTestAreas()
+        private void CreateTestGroups()
         {
             foreach (Cell cell in _cells)
             {
@@ -640,7 +771,7 @@ namespace Sudoku.MapLogic
                 int id = cell.Column / 3 + cell.Row / 3 * 3;
 
                 if (_groups.Find(a => a.ID == id) == null)
-                    CreateArea(cell, id, GroupType.Basic);
+                    CreateGroup(cell, id, GroupType.Basic);
 
                 AddCellToGroup(cell, id);
             }
@@ -654,6 +785,11 @@ namespace Sudoku.MapLogic
             }
 
             MapSave save = new MapSave(this);
+            while (_saveInd < _saves.Count - 1)
+            {
+                _saves.Remove(_saves.Last());
+            }
+
             _saves.Add(save);
             _saveInd = _saves.Count - 1;
         }
@@ -669,81 +805,40 @@ namespace Sudoku.MapLogic
             throw new InvalidOperationException();
         }
 
-        private void UpdateConflicts(Cell target, int value)
+        private void UpdateConflicts(int value)
         {
-            target.Correct = value;
-            int rowT = target.Row;
-            int colT = target.Column;
-
-            // удаляю текущую ячейку из конфликтов, так как было задано новое значение
-            for (int i = 0; i < _conflicts.Count; i++)
-            {
-                Conflict conflict = _conflicts[i];
-                if (conflict.Cells.Remove(target)
-                    && conflict.Cells.Count < 2)
-                {
-                    _conflicts.RemoveAt(i);
-                }
-            }
-
             if (value == 0)
                 return;
 
-            List<Cell> conflictList = new List<Cell>
+            _conflicts.RemoveAll(c => c.ConflictValue == value);
+            var cellByValue = _cells.Where(c => c.Correct == value);
+            HashSet<Cell> conflictList = new HashSet<Cell>();
+            foreach (var cell in cellByValue)
             {
-                target
-            };
+                if (conflictList.Contains(cell))
+                    continue;
 
-            // проверяю конфликты по вертикали
-            for (int y = 0; y < Height; y++)
-            {
-                Cell cur = this[rowT, y];
-                if (target != cur && 
-                    cur.Correct == target.Correct)
-                {
-                    if (!conflictList.Contains(cur))
-                        conflictList.Add(cur);
-                }
+                var conflictByRowsCols = cellByValue.Where(c => (c.Row == cell.Row ||
+                    c.Column == cell.Column) && c != cell);
+
+                var cellGroups = cell.Groups.Select(g => g.ID);
+
+                var conflictByGroup = cellByValue.Where(c => 
+                    c.Groups.Intersect(cell.Groups).Count() != 0 && c != cell);
+
+                if (conflictByGroup.Count() == 0 && conflictByRowsCols.Count() == 0)
+                    continue;
+
+                conflictList.Add(cell);
+                conflictList = conflictList.Concat(conflictByRowsCols).ToHashSet();
+                conflictList = conflictList.Concat(conflictByGroup).ToHashSet();
             }
 
-            // проверяю конфликты по горизонтали
-            for (int x = 0; x < Width; x++)
-            {
-                Cell cur = this[x, colT];
-                if (target != cur && 
-                    cur.Correct == target.Correct)
-                {
-                    if (!conflictList.Contains(cur))
-                        conflictList.Add(cur);
-                }
-            }
+            if (conflictList.Count == 0)
+                return;
 
-            foreach (Group area in target.Groups)
-            {
-                foreach (Cell cur in area.Cells)
-                {
-                    if (cur.Correct == target.Correct)
-                    {
-                        if (!conflictList.Contains(cur))
-                            conflictList.Add(cur);
-                    }
-                }
-            }
-
-            if (conflictList.Count > 1)
-            {
-                Conflict conflict = _conflicts.Find(c => c.ConflictValue == target.Correct);
-                if (conflict != null)
-                {
-                    conflict.Cells.Add(target);
-                }
-
-                else
-                {
-                    Conflict newConflict = new Conflict(conflictList);
-                    _conflicts.Add(newConflict);
-                }
-            }
+            Conflict updatedConflict = new Conflict(conflictList);
+            _conflicts.Add(updatedConflict);
         }
 
         private class Cell
@@ -781,6 +876,9 @@ namespace Sudoku.MapLogic
 
             public void AddGroup(Group area)
             {
+                if (!IsAvailable)
+                    return;
+
                 if (!_areas.Contains(area))
                 {
                     _areas.Add(area);
@@ -838,7 +936,7 @@ namespace Sudoku.MapLogic
             }
         }
 
-        private class ConflictInterface
+        public class ConflictInterface
         {
             private IReadOnlyCollection<CellInterface> _cells;
 
@@ -848,6 +946,8 @@ namespace Sudoku.MapLogic
             }
 
             public int ConflictValue => _cells.First().Correct;
+
+            public IReadOnlyCollection<CellInterface> Cells { get { return _cells; } }
         }
 
         public enum GroupType
@@ -881,11 +981,14 @@ namespace Sudoku.MapLogic
 
             public bool AddCell(Cell cell)
             {
+                if (!cell.IsAvailable)
+                    return false;
+
                 if (!_cells.Contains(cell))
                 {
                     _cells.Add(cell);
                     cell.AddGroup(this);
-                    _map.UpdateConflicts(cell, cell.Correct);
+                    _map.UpdateConflicts(cell.Correct);
                     return true;
                 }
 
@@ -944,7 +1047,7 @@ namespace Sudoku.MapLogic
                 {
                     _selectedGroups.Add(g.GetInterface());
                 }
-                _conflicts = map._conflicts;
+                _conflicts = map.GetConflicts();
             }
 
             public int Height => _cells.Select(c => c.Row).Max();
@@ -961,7 +1064,52 @@ namespace Sudoku.MapLogic
 
             public void LoadTo(Map map)
             {
-                ?
+                map._cells.Clear();
+                map._groups.Clear();
+                map._selectedGroups.Clear();
+                map._conflicts.Clear();
+
+                foreach (var cell in _cells)
+                {
+                    Cell target = new Cell(cell.Row, cell.Column);
+                    target.Correct = cell.Correct;
+                    target.IsAvailable = cell.IsAvailable;
+                    target.IsSelected = cell.IsSelected;
+                    map._cells.Add(target);
+                }
+
+                foreach (var group in _groups)
+                {
+                    Group target = new Group(group.ID, map)
+                    {
+                        Type = group.Type
+                    };
+                    foreach (var cell in _cells)
+                    {
+                        if (cell.Groups.Select(g => g.ID).Contains(group.ID))
+                        {
+                            target.AddCell(map[cell.Row, cell.Column]);
+                        }
+                    }
+                    map._groups.Add(target);
+                }
+
+                foreach (var selG in _selectedGroups)
+                {
+                    Group target = map._groups.Find(g => g.ID == selG.ID);
+                    map._selectedGroups.Add(target);
+                }
+
+                foreach (var conf in _conflicts)
+                {
+                    List<Cell> cells = new List<Cell>();
+                    foreach (var cell in conf.Cells)
+                    {
+                        cells.Add(map[cell.Row, cell.Column]);
+                    }
+                    Conflict target = new Conflict(cells);
+                    map._conflicts.Add(target);
+                }
             }
         }
     }

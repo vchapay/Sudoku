@@ -29,26 +29,29 @@
         private void InitializeComponent()
         {
             Sudoku.MapLogic.Map map1 = new Sudoku.MapLogic.Map();
-            this.sudokuMakerDisplay1 = new Sudoku.SpecialControls.SudokuMakerDisplay();
+            this.sudokuMaker1 = new Sudoku.SpecialControls.SudokuMaker();
             this.SuspendLayout();
             // 
-            // sudokuMakerDisplay1
+            // sudokuMaker1
             // 
-            this.sudokuMakerDisplay1.DataSource = map1;
-            this.sudokuMakerDisplay1.Dock = System.Windows.Forms.DockStyle.Right;
-            this.sudokuMakerDisplay1.Font = new System.Drawing.Font("Times New Roman", 26F);
-            this.sudokuMakerDisplay1.Location = new System.Drawing.Point(850, 0);
-            this.sudokuMakerDisplay1.Name = "sudokuMakerDisplay1";
-            this.sudokuMakerDisplay1.Size = new System.Drawing.Size(661, 682);
-            this.sudokuMakerDisplay1.TabIndex = 0;
-            this.sudokuMakerDisplay1.Text = "sudokuMakerDisplay1";
+            this.sudokuMaker1.CellPanelHeight = 250F;
+            this.sudokuMaker1.CellPanelsSplitterWidth = 3F;
+            this.sudokuMaker1.Font = new System.Drawing.Font("Times New Roman", 26F);
+            this.sudokuMaker1.Location = new System.Drawing.Point(277, 65);
+            map1.Name = null;
+            map1.SavesCapacity = 15;
+            this.sudokuMaker1.Map = map1;
+            this.sudokuMaker1.Name = "sudokuMaker1";
+            this.sudokuMaker1.Size = new System.Drawing.Size(1028, 537);
+            this.sudokuMaker1.TabIndex = 0;
+            this.sudokuMaker1.Text = "sudokuMaker1";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1511, 682);
-            this.Controls.Add(this.sudokuMakerDisplay1);
+            this.Controls.Add(this.sudokuMaker1);
             this.Name = "Form1";
             this.Text = "Form1";
             this.ResumeLayout(false);
@@ -57,7 +60,7 @@
 
         #endregion
 
-        private SpecialControls.SudokuMakerDisplay sudokuMakerDisplay1;
+        private SpecialControls.SudokuMaker sudokuMaker1;
     }
 }
 
