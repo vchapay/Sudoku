@@ -63,6 +63,16 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ChangingIcon {
+            get {
+                object obj = ResourceManager.GetObject("ChangingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap InteractiveCellIcon {
             get {
                 object obj = ResourceManager.GetObject("InteractiveCellIcon", resourceCulture);

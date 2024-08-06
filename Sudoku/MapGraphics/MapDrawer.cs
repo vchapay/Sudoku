@@ -39,6 +39,7 @@ namespace Sudoku.MapGraphics
         private readonly Brush _rowsColsSelectionBrush;
         private readonly Brush _sumAreaSelectionBrush;
         private readonly Brush _conflictCellBrush;
+        private readonly Brush _bgBrush;
         private readonly Pen _cellSelectionPen;
         private readonly Pen _defaultAreaPen;
         private readonly Pen _sumAreaPen;
@@ -112,6 +113,8 @@ namespace Sudoku.MapGraphics
             _sumAreaSelectionBrush = new SolidBrush(Color.FromArgb(30, 0, 250, 50));
             _sameContentCellsSelectionBrush = new SolidBrush(Color.FromArgb(50, 0, 240, 200));
             _basicAreaSelectionBrush = new SolidBrush(Color.FromArgb(20, 0, 190, 220));
+            _bgBrush = new HatchBrush(HatchStyle.DiagonalCross, 
+                Color.FromArgb(230, 230, 230), Color.White);
         }
 
         public Font Font
@@ -121,7 +124,8 @@ namespace Sudoku.MapGraphics
         }
 
         /// <summary>
-        /// Отображает карту, используя заданный объект Graphics
+        /// Отображает карту, представленную объектом Map,
+        /// используя заданный объект Graphics
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
@@ -129,32 +133,22 @@ namespace Sudoku.MapGraphics
         public void Draw(Graphics g, RectangleF surface, Map map)
         {
             if (map == null || g == null)
-                throw new ArgumentException();
+                throw new ArgumentNullException();
 
             var cells = map.GetCells();
-            _mapSize = new Size(map.Width, map.Height);
+            _mapSize = new Size(map.ColumnsCount, map.RowsCount);
             g.Clear(Color.White);
             ConstructBase(surface.Size, _mapSize);
-            DrawCellsContent(g, cells, true);
-            DrawGroups(g, map.GetGroups(), map.GetCellsInArea);
-            DrawSelections(g, map.GetCellsInArea, cells, false, true, true, true);
+            DrawBackGround(g);
+            DrawCellsContent(g, cells);
+            DrawGroups(g, map.GetCells(), map.GetGroups());
+            DrawSelections(g, map, true, true);
             DrawConflict(g, map.GetConflicts());
         }
 
-        private void DrawConflict(Graphics g, List<ConflictInterface> conflictInterfaces)
-        {
-            foreach (var conflict in conflictInterfaces)
-            {
-                foreach (var cell in conflict.Cells)
-                {
-                    FillCell(g, cell, _conflictCellBrush);
-                    DrawCellOutline(g, cell, _conflictCellPen);
-                }
-            }
-        }
-
         /// <summary>
-        /// Отображает карту, используя заданный объект Graphics
+        /// Отображает карту, представленную объектом MapInterface,
+        /// используя заданный объект Graphics
         /// </summary>
         /// <param name="g"></param>
         /// <param name="map"></param>
@@ -162,22 +156,34 @@ namespace Sudoku.MapGraphics
         public void Draw(Graphics g, RectangleF surface, MapInterface map)
         {
             if (map == null || g == null)
-                throw new ArgumentException();
+                throw new ArgumentNullException();
 
             _mapSize = new Size(map.Width, map.Height);
+            g.Clear(Color.White);
             ConstructBase(surface.Size, _mapSize);
+            DrawBackGround(g);
             DrawGrid(g);
-            DrawGroups(g, map.Areas, map.GetCellsByArea);
-            DrawSelections(g, map.GetCellsByArea, map.Cells, true, true, true, false);
-            DrawCellsContent(g, map.Cells, false);
+            var cells = map.Cells.Select(c => c.GetInfo());
+            var groups = map.Groups.Select(gr => gr.GetInfo());
+            DrawGroups(g, cells.ToList(), groups.ToList());
+            DrawSelections(g, map, true, true, true);
+            DrawCellsContent(g, map.Cells);
         }
 
         /// <summary>
-        /// Возвращает координаты ячейки, содержащей пиксель с заданными координатами
+        /// Конструирует для карты заданного размера 
+        /// прямоугольник изображения на полотне
+        /// и находит ячейку, прямоугольнику которой принадлежит точка. 
+        /// Координаты находится так, будто бы в том месте, 
+        /// где находится целевая точка, ячейка на карте существует, 
+        /// однако это может быть и не так.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns>Структура Point, где YIndent - столбец, а YIndent - строка заданной карты.</returns>
+        /// <param name="x"> Координата X целевой точки </param>
+        /// <param name="y"> Координата Y целевой точки </param>
+        /// <param name="map"> Размер карты (в ячейках) </param>
+        /// <param name="display"> Размер полотна для отображения карты </param>
+        /// <returns> Структура Point, где X 
+        /// соответствует столбцу ячейки, а Y - строке. </returns>
         public Point GetCell(float x, float y, Size map, Size display)
         {
             ConstructBase(display, map);
@@ -188,6 +194,17 @@ namespace Sudoku.MapGraphics
             return new Point(col, row);
         }
 
+        /// <summary>
+        /// Конструирует для карты заданного размера изображение на прямоугольнике
+        /// и находит ячейки, прямоугольники которых содержат точки прямоугольника выделения. 
+        /// Координаты находится так, будто бы в области выделения
+        /// ячейки на карте существуют, однако это может быть и не так.
+        /// </summary>
+        /// <param name="rect"> Прямоугольник выделения </param>
+        /// <param name="map"> Размер карты (в ячейках) </param>
+        /// <param name="display"> Размер полотна для отображения карты </param>
+        /// <returns> Список структур Point, в которых X 
+        /// соответствует столбцу ячейки, а Y - строке. </returns>
         public List<Point> GetCells(RectangleF rect, Size map, SizeF display)
         {
             List<Point> cells = new List<Point>();
@@ -218,6 +235,53 @@ namespace Sudoku.MapGraphics
             float xIndent = (display.Width - _imageWidth) / 2;
             float yIndent = (display.Height - _imageHeight) / 2;
             _imagePosition = new PointF(xIndent, yIndent);
+        }
+
+        private void DrawBackGround(Graphics g)
+        {
+            if (_imagePosition.X > 0)
+            {
+                RectangleF leftRect = new RectangleF()
+                {
+                    X = 0,
+                    Y = 0,
+                    Width = _imagePosition.X - 1,
+                    Height = _imageHeight
+                };
+
+                RectangleF rightRect = new RectangleF()
+                {
+                    X = _imageWidth + _imagePosition.X,
+                    Y = 0,
+                    Width = _imagePosition.X - 1,
+                    Height = _imageHeight
+                };
+
+                g.FillRectangle(_bgBrush, leftRect);
+                g.FillRectangle(_bgBrush, rightRect);
+            }
+
+            else
+            {
+                RectangleF topRect = new RectangleF()
+                {
+                    X = 0,
+                    Y = 0,
+                    Width = _imageWidth,
+                    Height = _imagePosition.Y - 1
+                };
+
+                RectangleF bottomRect = new RectangleF()
+                {
+                    X = 0,
+                    Y = _imageHeight + _imagePosition.Y,
+                    Width = _imageWidth,
+                    Height = _imagePosition.Y - 1
+                };
+
+                g.FillRectangle(_bgBrush, topRect);
+                g.FillRectangle(_bgBrush, bottomRect);
+            }
         }
 
         private float FindCellSize(SizeF display, Size map)
@@ -260,23 +324,70 @@ namespace Sudoku.MapGraphics
             }
         }
 
-        private void DrawCellsContent(Graphics g, 
-            IReadOnlyCollection<CellInterface> cells, bool showUnavailable)
+        private void DrawConflict(Graphics g, List<ConflictInfo> conflictInterfaces)
+        {
+            foreach (var conflict in conflictInterfaces)
+            {
+                foreach (var cell in conflict.Cells)
+                {
+                    FillCell(g, cell, _conflictCellBrush);
+                    DrawCellOutline(g, cell, _conflictCellPen);
+                }
+            }
+        }
+
+        private void DrawCellsContent(Graphics g,
+            IReadOnlyCollection<CellInfo> cells)
         {
             foreach (var cell in cells)
             {
-                RectangleF rect = new RectangleF()
-                {
-                    X = _imagePosition.X + cell.Column * _cellSize,
-                    Y = _imagePosition.Y + cell.Row * _cellSize,
-                    Width = _cellSize,
-                    Height = _cellSize
-                };
+                RectangleF rect = ConstructCellRect(cell);
 
                 if (!cell.IsAvailable && cell.Correct != 0)
                 {
                     g.DrawString(cell.Correct.ToString(), _font, _openedValuesBrush,
                         rect, _mainCellsTextFormat);
+                }
+
+                if (cell.IsAvailable && cell.Correct != 0)
+                {
+                    g.DrawString(cell.Correct.ToString(), _font, _unavailableValuesBrush,
+                        rect, _mainCellsTextFormat);
+                }
+
+                if (!cell.IsAvailable && cell.Correct == 0)
+                {
+                    DrawUnavailableIcon(g, rect);
+                }
+
+                else
+                {
+                    DrawCellOutline(g, cell, _unblockedCellOutlinePen);
+                }
+            }
+        }
+
+        private void DrawCellsContent(Graphics g, 
+            IReadOnlyCollection<CellInterface> cells)
+        {
+            foreach (var cell in cells)
+            {
+                RectangleF rect = ConstructCellRect(cell.GetInfo());
+
+                if (!cell.IsAvailable && cell.Correct != 0)
+                {
+                    g.DrawString(cell.Correct.ToString(), _font, _openedValuesBrush,
+                        rect, _mainCellsTextFormat);
+                }
+
+                if (!cell.IsAvailable && cell.Correct == 0)
+                {
+                    DrawUnavailableIcon(g, rect);
+                }
+
+                else
+                {
+                    DrawCellOutline(g, cell.GetInfo(), _unblockedCellOutlinePen);
                 }
 
                 if (cell.IsAvailable && cell.Entered != 0)
@@ -289,57 +400,45 @@ namespace Sudoku.MapGraphics
                     g.DrawString(cell.Entered.ToString(), _font, brush,
                         rect, _mainCellsTextFormat);
                 }
-
-                if (showUnavailable)
-                {
-                    if (cell.IsAvailable && cell.Correct != 0)
-                    {
-                        g.DrawString(cell.Correct.ToString(), _font, _unavailableValuesBrush,
-                            rect, _mainCellsTextFormat);
-                    }
-                }
-
-                if (!cell.IsAvailable && cell.Correct == 0)
-                {
-                    float indent = _cellSize * _unavailbaleBoxOutlineIndent;
-                    rect.X += indent;
-                    rect.Y += indent;
-                    rect.Width -= indent * 2;
-                    rect.Height -= indent * 2;
-
-                    g.DrawRectangle(_unavailableIconPen, rect.X,
-                        rect.Y, rect.Width, rect.Height);
-
-                    g.DrawLine(_unavailableIconPen, rect.X,
-                        rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
-
-                    g.DrawLine(_unavailableIconPen, rect.X,
-                        rect.Y + rect.Height, rect.X + rect.Width, rect.Y);
-                }
-
-                else
-                {
-                    DrawCellOutline(g, cell, _unblockedCellOutlinePen);
-                }
             }
         }
-
-        private void DrawGroups(Graphics g, 
-            IReadOnlyCollection<GroupInterface> areas, Func<int, List<CellInterface>> areaCells)
+        private void DrawUnavailableIcon(Graphics g, RectangleF rect)
         {
-            foreach (var area in areas)
+            float indent = _cellSize * _unavailbaleBoxOutlineIndent;
+            rect.X += indent;
+            rect.Y += indent;
+            rect.Width -= indent * 2;
+            rect.Height -= indent * 2;
+
+            g.DrawRectangle(_unavailableIconPen, rect.X,
+                rect.Y, rect.Width, rect.Height);
+
+            g.DrawLine(_unavailableIconPen, rect.X,
+                rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
+
+            g.DrawLine(_unavailableIconPen, rect.X,
+                rect.Y + rect.Height, rect.X + rect.Width, rect.Y);
+        }
+
+        private void DrawGroups(Graphics g,
+            List<CellInfo> cells, List<GroupInfo> groups)
+        {
+            List<int> drawnGroups = new List<int>();
+            foreach (var gr in groups)
             {
-                bool isSumArea = area.Type == Map.GroupType.Sum;
+                if (drawnGroups.Contains(gr.ID))
+                    continue;
 
-                Pen pen = _defaultAreaPen;
+                var grCells = cells.Where(c => c.Groups.Contains(gr.ID));
 
-                var cells = areaCells(area.ID);
-                var outline = ConstructOutline(isSumArea, cells);
+                bool isSumGroup = gr.Type == GroupType.Sum;
+                var outline = ConstructOutline(isSumGroup, grCells.ToList());
                 if (outline.Count == 0)
                     continue;
 
-                if (isSumArea)
-                    if (area.IsSelected)
+                Pen pen = _defaultAreaPen;
+                if (isSumGroup)
+                    if (gr.IsSelected)
                         pen = _selectedSumAreaPen;
                     else
                         pen = _sumAreaPen;
@@ -349,7 +448,7 @@ namespace Sudoku.MapGraphics
                     g.DrawLines(pen, pts.ToArray());
                 }
 
-                if (isSumArea)
+                if (isSumGroup)
                 {
                     PointF first = outline.First().First();
 
@@ -370,20 +469,74 @@ namespace Sudoku.MapGraphics
                     };
 
                     g.FillEllipse(Brushes.White, backRect);
-                    g.DrawString(area.Sum.ToString(), _sumAreaFont, _openedValuesBrush,
+                    g.DrawString(gr.Sum.ToString(), _sumAreaFont, _openedValuesBrush,
                         textRect, _mainCellsTextFormat);
                 }
+
+                drawnGroups.Add(gr.ID);
             }
         }
 
-        private List<List<PointF>> ConstructOutline(bool isSumArea, List<CellInterface> cells)
+        /*private void DrawGroups(Graphics g, 
+            IReadOnlyCollection<GroupInfo> areas, Func<int, List<CellInfo>> areaCells)
+        {
+            foreach (var gID in areas)
+            {
+                bool isSumArea = gID.Type == Map.GroupType.Sum;
+
+                Pen pen = _defaultAreaPen;
+
+                var cells = areaCells(gID.ID);
+                var outline = ConstructOutline(isSumArea, cells);
+                if (outline.Count == 0)
+                    continue;
+
+                if (isSumArea)
+                    if (gID.IsSelected)
+                        pen = _selectedSumAreaPen;
+                    else
+                        pen = _sumAreaPen;
+
+                foreach (var pts in outline)
+                {
+                    g.DrawLines(pen, pts.ToArray());
+                }
+
+                if (isSumArea)
+                {
+                    PointF first = outline.First().First();
+
+                    RectangleF textRect = new RectangleF
+                    {
+                        X = first.X - 5,
+                        Y = first.Y - 3,
+                        ColumnsCount = 22,
+                        RowsCount = 15
+                    };
+
+                    RectangleF backRect = new RectangleF
+                    {
+                        X = first.X - 3,
+                        Y = first.Y - 3,
+                        ColumnsCount = 20,
+                        RowsCount = 15
+                    };
+
+                    g.FillEllipse(Brushes.White, backRect);
+                    g.DrawString(gID.Sum.ToString(), _sumAreaFont, _openedValuesBrush,
+                        textRect, _mainCellsTextFormat);
+                }
+            }
+        }*/
+
+        private List<List<PointF>> ConstructOutline(bool isSumArea, List<CellInfo> cells)
         {
             var points = ConstructPoints(cells, isSumArea);
             List<List<PointF>> outline = Arrange(points);
             return outline;
         }
 
-        private List<(PointF, NextDirection)> ConstructPoints(List<CellInterface> cells, bool isSumArea)
+        private List<(PointF, NextDirection)> ConstructPoints(List<CellInfo> cells, bool isSumArea)
         {
             NextDirection direction;
             var points = new List<(PointF, NextDirection)>();
@@ -578,10 +731,53 @@ namespace Sudoku.MapGraphics
             return PointF.Empty;
         }
 
-        private void DrawSelections(Graphics g, Func<int, List<CellInterface>> areaCells, 
-            IEnumerable<CellInterface> cells, 
-            bool selectRowsAndCols, bool selectSameContent, 
-            bool selectAreas, bool showUnavailable)
+        private void DrawSelections(Graphics g, Map map,
+            bool selectSameContent, bool selectGroups)
+        {
+            var cells = map.GetCells();
+            var selected = cells.Where(c => c.IsSelected);
+            _selectedContent.Clear();
+            _selectedGroups.Clear();
+            if (selected.Count() > 0)
+            {
+                foreach (var cell in selected)
+                {
+                    RectangleF cellRect = ConstructCellRect(cell);
+                    g.FillRectangle(_cellSelectionBrush, cellRect);
+                    g.DrawRectangle(_cellSelectionPen, cellRect.X, cellRect.Y,
+                        cellRect.Width, cellRect.Height);
+
+                    if (selectSameContent)
+                    {
+                        int content = cell.Correct;
+                        if (!_selectedContent.Contains(content))
+                        {
+                            DrawSelectionSameContent(g, content, cells);
+                            _selectedContent.Add(content);
+                        }
+                    }
+
+                    if (selectGroups)
+                    {
+                        foreach (var gID in cell.Groups)
+                        {
+                            if (_selectedGroups.Contains(gID))
+                                continue;
+
+                            GroupInfo group = map.GetGroups().Find(gr => gr.ID == gID);
+                            var groupCells = map.GetCells().Where(c => c.Groups.Contains(gID));
+
+                            DrawGroupSelection(g, groupCells, group.Type == GroupType.Sum);
+
+                            _selectedGroups.Add(gID);
+                        }
+                    }
+                }
+            }
+        }
+
+        /*private void DrawSelections(Graphics g, IEnumerable<CellInfo> cells,
+            bool selectSameContent, bool selectGroups)
         {
             var selected = cells.Where(c => c.IsSelected);
             _selectedContent.Clear();
@@ -591,6 +787,49 @@ namespace Sudoku.MapGraphics
                 foreach (var cell in selected)
                 {
                     RectangleF cellRect = ConstructCellRect(cell);
+                    g.FillRectangle(_cellSelectionBrush, cellRect);
+                    g.DrawRectangle(_cellSelectionPen, cellRect.X, cellRect.Y,
+                        cellRect.ColumnsCount, cellRect.RowsCount);
+
+                    if (selectSameContent)
+                    {
+                        int content = cell.Correct;
+                        if (!_selectedContent.Contains(content))
+                        {
+                            DrawSelectionSameContent(g, content, cells);
+                            _selectedContent.Add(content);
+                        }
+                    }
+
+                    if (selectGroups)
+                    {
+                        foreach (var gID in cell.Groups)
+                        {
+                            if (_selectedGroups.Contains(gID))
+                                continue;
+
+                            DrawGroupSelection(g, areaCells.Invoke(gID),
+                                gID.Type == GroupType.Sum);
+
+                            _selectedGroups.Add(gID);
+                        }
+                    }
+                }
+            }
+        }*/
+
+        private void DrawSelections(Graphics g, MapInterface map, 
+            bool selectRowsAndCols, bool selectSameContent, bool selectAreas)
+        {
+            var cells = map.Cells;
+            var selected = cells.Where(c => c.IsSelected);
+            _selectedContent.Clear();
+            _selectedGroups.Clear();
+            if (selected.Count() > 0)
+            {
+                foreach (var cell in selected)
+                {
+                    RectangleF cellRect = ConstructCellRect(cell.GetInfo());
                     g.FillRectangle(_cellSelectionBrush, cellRect);
                     g.DrawRectangle(_cellSelectionPen, cellRect.X, cellRect.Y,
                         cellRect.Width, cellRect.Height);
@@ -608,22 +847,24 @@ namespace Sudoku.MapGraphics
                             content = cell.Entered;
                         if (!_selectedContent.Contains(content))
                         {
-                            DrawSelectionSameContent(g, content, cells, showUnavailable);
+                            DrawSelectionSameContent(g, content, cells);
                             _selectedContent.Add(content);
                         }
                     }
 
                     if (selectAreas)
                     {
-                        foreach (var area in cell.Groups)
+                        foreach (var gID in cell.Groups)
                         {
-                            if (_selectedGroups.Contains(area.ID))
+                            if (_selectedGroups.Contains(gID))
                                 continue;
 
-                            DrawGroupSelection(g, areaCells.Invoke(area.ID),
-                                area.Type == Map.GroupType.Sum);
+                            GroupInterface group = map.Groups.Where(gr => gr.ID == gID).First();
+                            var groupCells = map.Cells.Where(c => c.Groups.Contains(gID));
 
-                            _selectedGroups.Add(area.ID);
+                            DrawGroupSelection(g, groupCells, group.Type == GroupType.Sum);
+
+                            _selectedGroups.Add(gID);
                         }
                     }
                 }
@@ -638,13 +879,13 @@ namespace Sudoku.MapGraphics
             {
                 if (cell.IsThereMistake && cell.IsAvailable)
                 {
-                    FillCell(g, cell, _incorrectValuesFillBrush);
+                    FillCell(g, cell.GetInfo(), _incorrectValuesFillBrush);
                 }
             }
         }
 
         private void DrawSelectionSameContent(Graphics g, int content,
-            IEnumerable<CellInterface> cells, bool showUnavailable)
+            IEnumerable<CellInfo> cells)
         {
             if (content == 0)
                 return;
@@ -656,6 +897,26 @@ namespace Sudoku.MapGraphics
 
                 RectangleF compRect = ConstructCellRect(cell);
 
+                if (cell.Correct == content)
+                {
+                    g.FillRectangle(_sameContentCellsSelectionBrush, compRect);
+                }
+            }
+        }
+
+        private void DrawSelectionSameContent(Graphics g, int content,
+            IEnumerable<CellInterface> cells)
+        {
+            if (content == 0)
+                return;
+
+            foreach (var cell in cells)
+            {
+                if (cell.IsSelected)
+                    continue;
+
+                RectangleF compRect = ConstructCellRect(cell.GetInfo());
+
                 if (cell.IsAvailable)
                 {
                     if (cell.Entered == content)
@@ -664,7 +925,7 @@ namespace Sudoku.MapGraphics
                     }
                 }
 
-                if (showUnavailable || !cell.IsAvailable)
+                if (!cell.IsAvailable)
                 {
                     if (cell.Correct == content)
                     {
@@ -686,7 +947,7 @@ namespace Sudoku.MapGraphics
 
                 if (cell.Column == column && cell.Row != skipRow)
                 {
-                    FillCell(g, cell, _rowsColsSelectionBrush);
+                    FillCell(g, cell.GetInfo(), _rowsColsSelectionBrush);
                 }
             }
         }
@@ -704,8 +965,21 @@ namespace Sudoku.MapGraphics
 
                 if (cell.Row == row && cell.Column != skipCol)
                 {
-                    FillCell(g, cell, _rowsColsSelectionBrush);
+                    FillCell(g, cell.GetInfo(), _rowsColsSelectionBrush);
                 }
+            }
+        }
+
+        private void DrawGroupSelection(Graphics g, IEnumerable<CellInfo> cells, bool isSumArea)
+        {
+            foreach (CellInfo cell in cells)
+            {
+                Brush brush = _basicAreaSelectionBrush;
+
+                if (isSumArea)
+                    brush = _sumAreaSelectionBrush;
+
+                FillCell(g, cell, brush);
             }
         }
 
@@ -721,24 +995,24 @@ namespace Sudoku.MapGraphics
                 if (isSumArea)
                     brush = _sumAreaSelectionBrush;
 
-                FillCell(g, cell, brush);
+                FillCell(g, cell.GetInfo(), brush);
             }
         }
 
-        private void FillCell(Graphics g, CellInterface cell, Brush brush)
+        private void FillCell(Graphics g, CellInfo cell, Brush brush)
         {
             RectangleF cellRect = ConstructCellRect(cell);
             g.FillRectangle(brush, cellRect);
         }
 
-        private void DrawCellOutline(Graphics g, CellInterface cell, Pen pen)
+        private void DrawCellOutline(Graphics g, CellInfo cell, Pen pen)
         {
             RectangleF cellRect = ConstructCellRect(cell);
             g.DrawRectangle(pen, cellRect.X, cellRect.Y,
                 cellRect.Width, cellRect.Height);
         }
 
-        private RectangleF ConstructCellRect(CellInterface cell)
+        private RectangleF ConstructCellRect(CellInfo cell)
         {
             float x = cell.Column * _cellSize + _imagePosition.X;
             float y = cell.Row * _cellSize + _imagePosition.Y;

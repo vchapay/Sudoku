@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
+    [Serializable]
     /// <summary>
     /// Предоставляет оболочку над закрытым типом Cell для использования в игровой сессии
     /// </summary>
@@ -13,8 +14,9 @@ namespace Sudoku.MapLogic
         private readonly int _row;
         private readonly int _column;
         private readonly bool _available;
-        private readonly List<GroupInterface> _areas;
+        private readonly List<int> _groups;
         private readonly HashSet<int> _notes = new HashSet<int>();
+        private bool _isSelected;
 
         /// <summary>
         /// Создает интерфейс на основе данных целевой ячейки
@@ -26,13 +28,13 @@ namespace Sudoku.MapLogic
         /// <param name="areas"></param>
         public CellInterface(int correct, 
             int row, int column, bool available,
-            List<GroupInterface> areas)
+            List<int> areas)
         {
             _correct = correct;
             _row = row;
             _column = column;
             _available = available;
-            _areas = areas;
+            _groups = areas;
         }
 
         /// <summary>
@@ -70,7 +72,7 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Группы, в которые входит ячейка
         /// </summary>
-        public IReadOnlyCollection<GroupInterface> Groups { get { return _areas; } }
+        public IReadOnlyCollection<int> Groups { get { return _groups; } }
 
         /// <summary>
         /// Заметки карандашом в ячейке
@@ -80,7 +82,20 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Выделена ли ячейка
         /// </summary>
-        public bool IsSelected { get; set; }
+        public bool IsSelected 
+        { 
+            get
+            {
+                return _isSelected;
+            }
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Было ли введено игроком значение в ячейку
@@ -118,6 +133,12 @@ namespace Sudoku.MapLogic
         public void ClearNotes()
         {
             _notes.Clear();
+        }
+
+        public Map.CellInfo GetInfo()
+        {
+            return new Map.CellInfo(Row, Column, 
+                Correct, _groups, IsAvailable, IsSelected);
         }
 
         public static bool operator ==(CellInterface left, CellInterface right)

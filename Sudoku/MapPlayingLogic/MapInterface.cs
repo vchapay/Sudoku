@@ -13,20 +13,20 @@ namespace Sudoku.MapPlayingLogic
         private readonly int _width;
         private readonly int _height;
         private readonly MapTypes _type;
-        private readonly List<GroupInterface> _areas;
+        private readonly List<GroupInterface> _groups;
 
         public MapInterface(Map map) 
         {
-            _cells = map.GetCells();
-            _areas = map.GetGroups();
-            _width = map.Width;
-            _height = map.Height;
+            _cells = map.GetCellsInterfaces();
+            _groups = map.GetGroupsInterfaces();
+            _width = map.ColumnsCount;
+            _height = map.RowsCount;
             _type = map.Type;
         }
 
         public IReadOnlyCollection<CellInterface> Cells { get { return _cells; } }
 
-        public IReadOnlyCollection<GroupInterface> Areas { get { return _areas; } }
+        public IReadOnlyCollection<GroupInterface> Groups { get { return _groups; } }
 
         public CellInterface this[int row, int column]
         {
@@ -43,17 +43,17 @@ namespace Sudoku.MapPlayingLogic
         /// <summary>
         /// Возвращает список ячеек, принадлежащих области с заданным индентификатором
         /// </summary>
-        /// <param name="areaId"></param>
+        /// <param name="targetId"></param>
         /// <returns></returns>
-        public List<CellInterface> GetCellsByArea(int areaId)
+        public List<CellInterface> GetCellsByGroup(int targetId)
         {
             List<CellInterface> cells = new List<CellInterface>();
 
             foreach (var cell in Cells)
             {
-                foreach (var area in cell.Groups)
+                foreach (var gID in cell.Groups)
                 {
-                    if (area.ID == areaId)
+                    if (gID == targetId)
                         cells.Add(cell);
                 }
             }
@@ -65,20 +65,18 @@ namespace Sudoku.MapPlayingLogic
         {
             CellInterface cell = this[row, column];
             cell.IsSelected = !cell.IsSelected;
-            foreach (GroupInterface area in cell.Groups)
+            foreach (int gID in cell.Groups)
             {
                 if (cell.IsSelected)
                 {
-                    _areas.Find(a => a.ID == area.ID).IsSelected = true;
-                    area.IsSelected = true;
+                    _groups.Find(g => g.ID == gID).IsSelected = true;
                 }
 
                 else
                 {
-                    if (GetCellsByArea(area.ID).Where(c => c.IsSelected).Count() == 0)
+                    if (GetCellsByGroup(gID).Where(c => c.IsSelected).Count() == 0)
                     {
-                        _areas.Find(a => a.ID == area.ID).IsSelected = false;
-                        area.IsSelected = false;
+                        _groups.Find(a => a.ID == gID).IsSelected = false;
                     }
                 }
             }
@@ -89,12 +87,11 @@ namespace Sudoku.MapPlayingLogic
             foreach (var cell in Cells)
             {
                 cell.IsSelected = false;
+            }
 
-                foreach (var area in cell.Groups)
-                {
-                    _areas.Find(a => a.ID == area.ID).IsSelected = false;
-                    area.IsSelected = false;
-                }
+            foreach (var group in Groups)
+            {
+                group.IsSelected = false;
             }
         }
 

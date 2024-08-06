@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Sudoku.MapLogic
+﻿namespace Sudoku.MapLogic
 {
     internal class GroupInterface
     {
@@ -26,6 +20,11 @@ namespace Sudoku.MapLogic
         public int Sum { get { return _sum; } }
 
         public bool IsSelected { get; set; }
+
+        public Map.GroupInfo GetInfo()
+        {
+            return new Map.GroupInfo(ID, Type, Sum, IsSelected);
+        }
 
         public static bool operator ==(GroupInterface left, GroupInterface right)
         {

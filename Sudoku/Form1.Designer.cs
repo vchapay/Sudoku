@@ -28,32 +28,28 @@
         /// </summary>
         private void InitializeComponent()
         {
-            Sudoku.MapLogic.Map map1 = new Sudoku.MapLogic.Map();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.sudokuMaker1 = new Sudoku.SpecialControls.SudokuMaker();
             this.SuspendLayout();
             // 
             // sudokuMaker1
             // 
+            this.sudokuMaker1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.sudokuMaker1.CellPanelHeight = 250F;
             this.sudokuMaker1.CellPanelsSplitterWidth = 3F;
             this.sudokuMaker1.Font = new System.Drawing.Font("Times New Roman", 26F);
-            this.sudokuMaker1.Location = new System.Drawing.Point(277, 65);
-            map1.Name = null;
-            map1.SavesCapacity = 15;
-            this.sudokuMaker1.Map = map1;
+            this.sudokuMaker1.Location = new System.Drawing.Point(334, 53);
+            this.sudokuMaker1.Map = ((Sudoku.MapLogic.Map)(resources.GetObject("sudokuMaker1.Map")));
             this.sudokuMaker1.Name = "sudokuMaker1";
-            this.sudokuMaker1.Size = new System.Drawing.Size(1028, 537);
+            this.sudokuMaker1.Size = new System.Drawing.Size(860, 438);
             this.sudokuMaker1.TabIndex = 0;
             this.sudokuMaker1.Text = "sudokuMaker1";
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1511, 682);
+            this.ClientSize = new System.Drawing.Size(1496, 549);
             this.Controls.Add(this.sudokuMaker1);
             this.Name = "Form1";
-            this.Text = "Form1";
             this.ResumeLayout(false);
 
         }
