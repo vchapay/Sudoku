@@ -12,7 +12,7 @@ namespace Sudoku.MapGraphics
     /// <summary>
     /// Предоставляет средство для отображения карт судоку
     /// </summary>
-    internal class MapDrawer
+    internal sealed class MapDrawer
     {
         private const int _defaultMainCellFontSize = 26;
         private const float _sumAreaOutlineIndent = 0.07f;

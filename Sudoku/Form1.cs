@@ -8,6 +8,8 @@ namespace Sudoku
         public Form1()
         {
             InitializeComponent();
+            /*string name = sudokuMaker1.Map.Name;
+            sudokuMaker1.SavePath = $"D:\\По шарпу\\Судоку\\Папка для карт\\{name}.sdkm";*/
         }
     }
 }

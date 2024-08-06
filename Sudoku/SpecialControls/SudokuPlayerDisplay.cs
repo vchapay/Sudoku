@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace Sudoku.SpecialControls
 {
-    internal class SudokuPlayerDisplay : Control
+    internal sealed class SudokuPlayerDisplay : Control
     {
         private MapInterface _dataSource;
         private readonly MapDrawer _drawer;

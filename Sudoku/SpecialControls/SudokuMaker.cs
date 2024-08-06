@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
+using System.Runtime.Serialization;
 using System.Windows.Forms;
 
 namespace Sudoku.SpecialControls
@@ -11,7 +13,7 @@ namespace Sudoku.SpecialControls
     /// <summary>
     /// Элемент управления, предоставляющий средства создания и редактирования карт судоку.
     /// </summary>
-    internal class SudokuMaker : Control
+    internal sealed class SudokuMaker : Control
     {
         private Map _map;
         private readonly MapDrawer _drawer;
@@ -43,7 +45,7 @@ namespace Sudoku.SpecialControls
         private BorderStyle _borderStyle;
 
         /// <summary>
-        /// Инициализирует новый экземпляр.
+        /// Инициализирует новый экземпляр SudokuMaker.
         /// </summary>
         public SudokuMaker()
         {
@@ -70,7 +72,7 @@ namespace Sudoku.SpecialControls
             {
                 Width = 1,
                 DashStyle = DashStyle.Custom,
-                DashPattern = new float[] 
+                DashPattern = new float[]
                 {
                     3f,
                     3f,
@@ -105,7 +107,7 @@ namespace Sudoku.SpecialControls
         }
 
         /// <summary>
-        /// Задает или возвращает карту, редактируемую текущим контролом.
+        /// Карта, редактируемая текущим контролом.
         /// </summary>
         public Map Map
         {
@@ -114,7 +116,7 @@ namespace Sudoku.SpecialControls
         }
 
         /// <summary>
-        /// Возвращает или задает высоту панели с информацией о выделенной ячейке.
+        /// Высота панели с информацией о выделенной ячейке.
         /// </summary>
         public float CellPanelHeight
         {
@@ -127,8 +129,8 @@ namespace Sudoku.SpecialControls
         }
 
         /// <summary>
-        ///  Возвращает или задает толщину разделителя панелей
-        ///  с информацией о выделенных ячейках.
+        /// Толщина разделителя панелей
+        /// с информацией о выделенных ячейках.
         /// </summary>
         public float CellPanelsSplitterWidth
         {
@@ -140,6 +142,9 @@ namespace Sudoku.SpecialControls
             }
         }
 
+        /// <summary>
+        /// Стиль границ контрола
+        /// </summary>
         public BorderStyle BorderStyle 
         { 
             get 
@@ -152,6 +157,12 @@ namespace Sudoku.SpecialControls
                 Invalidate();
             }
         }
+
+        /// <summary>
+        /// Путь, по которому будет сохраняться объект карты
+        /// при нажатии на кнопку сохранения
+        /// </summary>
+        public string SavePath { get; set; }
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -230,6 +241,7 @@ namespace Sudoku.SpecialControls
             private int _splitterWidth;
             private readonly Brush _btnSelectionBrush;
             private readonly Pen _pen;
+            private readonly Pen _arrowPen;
             private readonly Pen _selectionPen;
 
             public MenuPanel(RectangleF container)
@@ -241,6 +253,11 @@ namespace Sudoku.SpecialControls
                 _pen = Pens.LightGray;
                 _selectionPen = Pens.Black;
 
+                _arrowPen = new Pen(Color.DarkGray)
+                {
+                    Width = 1,
+                    StartCap = LineCap.Custom,
+                };
                 ConstructBounds();
             }
 
@@ -264,14 +281,68 @@ namespace Sudoku.SpecialControls
             {
                 g.DrawRectangle(_pen, _bounds.X, _bounds.Y,
                     _bounds.Width, _bounds.Height);
+                DrawSaveIcon(g, _saveBtnBounds);
                 DrawButton(g, IsSaveButtonSelected, _saveBtnBounds);
+                DrawRedoIcon(g, _redoBtnBounds);
                 DrawButton(g, IsRedoButtonSelected, _redoBtnBounds);
+                DrawUndoIcon(g, _undoBtnBounds);
                 DrawButton(g, IsUndoButtonSelected, _undoBtnBounds);
+                DrawClearIcon(g, _clearBtnBounds);
                 DrawButton(g, IsClearButtonSelected, _clearBtnBounds);
                 FillButton(g, IsSaveButtonPressed, _saveBtnBounds);
                 FillButton(g, IsRedoButtonPressed, _redoBtnBounds);
                 FillButton(g, IsUndoButtonPressed, _undoBtnBounds);
                 FillButton(g, IsClearButtonPressed, _clearBtnBounds);
+            }
+
+            private void DrawClearIcon(Graphics g, RectangleF clearBtnBounds)
+            {
+                Image image = Properties.Resources.ClearingIcon;
+                g.DrawImage(image, clearBtnBounds);
+            }
+
+            private void DrawRedoIcon(Graphics g, RectangleF redoBtnBounds)
+            {
+                float x = redoBtnBounds.X + 6;
+                float y = redoBtnBounds.Y + 6;
+                float width = redoBtnBounds.Width - 12;
+                float height = redoBtnBounds.Height - 12;
+
+                float indent = 4;
+                GraphicsPath strokePath = new GraphicsPath();
+                strokePath.AddLine(x - indent, y + width / 2, x + indent, y + width / 2);
+                strokePath.AddLine(x, y + indent + width / 2, x - indent, y + width / 2);
+                strokePath.CloseFigure();
+
+                g.DrawArc(_arrowPen, x, y, width, height, 180, 270);
+                g.DrawPath(_pen, strokePath);
+                g.FillPath(Brushes.DarkGray, strokePath);
+            }
+
+            private void DrawUndoIcon(Graphics g, RectangleF redoBtnBounds)
+            {
+                float x = redoBtnBounds.X + 6;
+                float y = redoBtnBounds.Y + 6;
+                float width = redoBtnBounds.Width - 12;
+                float height = redoBtnBounds.Height - 12;
+
+                float indent = 4;
+                GraphicsPath strokePath = new GraphicsPath();
+                strokePath.AddLine(x - indent + width - 1, y + width / 2, 
+                    x + indent + width - 1, y + width / 2);
+                strokePath.AddLine(x + width - 1, y + indent + width / 2, 
+                    x - indent + width - 1, y + width / 2);
+                strokePath.CloseFigure();
+
+                g.DrawArc(_arrowPen, x, y, width, height, 90, 270);
+                g.DrawPath(_pen, strokePath);
+                g.FillPath(Brushes.DarkGray, strokePath);
+            }
+
+            private void DrawSaveIcon(Graphics g, RectangleF saveBtnBounds)
+            {
+                Image image = Properties.Resources.SavingIcon;
+                g.DrawImage(image, saveBtnBounds);
             }
 
             private void FillButton(Graphics g, bool isPressed, RectangleF rect)
@@ -335,11 +406,11 @@ namespace Sudoku.SpecialControls
 
                 _splitterWidth = (int)(_bounds.Width / 40);
 
-                float height = _bounds.Height;
+                float height = _bounds.Height - 6;
                 _clearBtnBounds = new RectangleF()
                 {
                     X = _bounds.X + _splitterWidth,
-                    Y = _bounds.Y,
+                    Y = _bounds.Y + 3,
                     Height = height,
                     Width = height,
                 };
@@ -347,7 +418,7 @@ namespace Sudoku.SpecialControls
                 _saveBtnBounds = new RectangleF()
                 {
                     X = _clearBtnBounds.Right + _splitterWidth,
-                    Y = _bounds.Y,
+                    Y = _bounds.Y + 3,
                     Height = height,
                     Width = height,
                 };
@@ -355,7 +426,7 @@ namespace Sudoku.SpecialControls
                 _redoBtnBounds = new RectangleF()
                 {
                     X = _saveBtnBounds.Right + _splitterWidth,
-                    Y = _bounds.Y,
+                    Y = _bounds.Y + 3,
                     Height = height,
                     Width = height,
                 };
@@ -363,7 +434,7 @@ namespace Sudoku.SpecialControls
                 _undoBtnBounds = new RectangleF()
                 {
                     X = _redoBtnBounds.Right + _splitterWidth,
-                    Y = _bounds.Y,
+                    Y = _bounds.Y + 3,
                     Height = height,
                     Width = height,
                 };
@@ -390,7 +461,7 @@ namespace Sudoku.SpecialControls
             private readonly Brush _conflictBrush;
             private readonly Pen _outlinePen;
             private readonly StringFormat _textFormat;
-            private Dictionary<int, Map.GroupType> _groups;
+            private Dictionary<int, GroupType> _groups;
             private float _height = 250;
             private float _titleHeight = 15;
             private float _correctHeight = 70;
@@ -426,7 +497,7 @@ namespace Sudoku.SpecialControls
                     LineAlignment = StringAlignment.Center,
                 };
 
-                _groups = new Dictionary<int, Map.GroupType>();
+                _groups = new Dictionary<int, GroupType>();
                 _cellStateButton = new CellStateButton();
                 _groupPanels = new List<GroupPanel>();
                 ConstructBounds();
@@ -498,7 +569,7 @@ namespace Sudoku.SpecialControls
 
             public RectangleF Bounds { get { return _bounds; } }
 
-            public Dictionary<int, Map.GroupType> Groups 
+            public Dictionary<int, GroupType> Groups 
             { 
                 get 
                 { 
@@ -764,7 +835,7 @@ namespace Sudoku.SpecialControls
 
                 public int ID { get; set; }
 
-                public Map.GroupType Type { get; set; }
+                public GroupType Type { get; set; }
 
                 public RectangleF Bounds { get { return _bounds; } }
 
@@ -1210,7 +1281,7 @@ namespace Sudoku.SpecialControls
                 Width = _cellEditRect.Width - 1,
                 Height = _cellEditRect.Height -
                     _selectedCellsListRect.Height -
-                    _menuRect.Height
+                    _menuRect.Height - 35
             };
 
             _addingPanel?.ChangeContainer(_editRect);
@@ -1329,15 +1400,15 @@ namespace Sudoku.SpecialControls
                 if (!string.IsNullOrEmpty(_addingPanel.EnteredID)
                     && _addingPanel.IsButtonSelected)
                 {
-                    Map.GroupType type;
+                    GroupType type;
 
                     switch (_addingPanel.EnteredType)
                     {
                         case "sum":
-                            type = Map.GroupType.Sum;
+                            type = GroupType.Sum;
                             break;
                         default:
-                            type = Map.GroupType.Basic;
+                            type = GroupType.Basic;
                             break;
                     }
 
@@ -1345,8 +1416,6 @@ namespace Sudoku.SpecialControls
                     if (_map.AddSelectedToGroup(id))
                         _map.ChangeGroupType(id, type);
                 }
-
-
             }
 
             if (e.Button == MouseButtons.Right)
@@ -1357,6 +1426,34 @@ namespace Sudoku.SpecialControls
             _addingPanel.IsIDEntering = _addingPanel.IsIDBoxFocused(e.Location);
             _addingPanel.IsTypeEntering = _addingPanel.IsTypeBoxFocused(e.Location);
 
+            if (_menuPanel.IsClearButtonPressed)
+            {
+                _map.Clear();
+            }
+
+            if (_menuPanel.IsRedoButtonPressed)
+            {
+                _map.Redo();
+            }
+
+            if (_menuPanel.IsUndoButtonPressed)
+            {
+                _map.Undo();
+            }
+
+            if (_menuPanel.IsSaveButtonPressed)
+            {
+                if (!string.IsNullOrEmpty(SavePath))
+                {
+                    using (Stream stream = File.Open(SavePath, 
+                        FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        DataContractSerializer serializer = new DataContractSerializer(_map.GetType());
+                        serializer.WriteObject(stream, _map);
+                    }
+                }
+            }
+
             _menuPanel.IsClearButtonPressed = false;
             _menuPanel.IsRedoButtonPressed = false;
             _menuPanel.IsUndoButtonPressed = false;
@@ -1366,7 +1463,6 @@ namespace Sudoku.SpecialControls
             UpdateShowingCells();
             ValidateScroll();
             Invalidate();
-            base.OnMouseUp(e);
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
@@ -1379,7 +1475,6 @@ namespace Sudoku.SpecialControls
 
             ValidateScroll();
             Invalidate();
-            base.OnMouseWheel(e);
         }
 
         private void ValidateScroll()
@@ -1418,10 +1513,10 @@ namespace Sudoku.SpecialControls
                         _map.RemoveSelectedFromGroup();
                         break;
                     case Keys.G:
-                        _map.GroupSelected(Map.GroupType.Basic);
+                        _map.GroupSelected(GroupType.Basic);
                         break;
                     case Keys.S:
-                        _map.GroupSelected(Map.GroupType.Sum);
+                        _map.GroupSelected(GroupType.Sum);
                         break;
                     case Keys.O:
                         _map.ChangeSelectedAvailability();
@@ -1456,11 +1551,42 @@ namespace Sudoku.SpecialControls
                         }
                         else _map.Write(0);
                         break;
+                    case Keys.A:
+                        _map.Write(10);
+                        break;
                     case Keys.B:
                         if (_addingPanel.IsTypeEntering)
                         {
                             _addingPanel.EnteredType = "basic";
                         }
+                        else _map.Write(11);
+                        break;
+                    case Keys.C:
+                        _map.Write(12);
+                        break;
+                    case Keys.D:
+                        _map.Write(13);
+                        break;
+                    case Keys.E:
+                        _map.Write(14);
+                        break;
+                    case Keys.F:
+                        _map.Write(15);
+                        break;
+                    case Keys.G:
+                        _map.Write(16);
+                        break;
+                    case Keys.H:
+                        _map.Write(17);
+                        break;
+                    case Keys.I:
+                        _map.Write(18);
+                        break;
+                    case Keys.J:
+                        _map.Write(19);
+                        break;
+                    case Keys.K:
+                        _map.Write(20);
                         break;
                     case Keys.S:
                         if (_addingPanel.IsTypeEntering)
@@ -1498,7 +1624,6 @@ namespace Sudoku.SpecialControls
         protected override void OnKeyUp(KeyEventArgs e)
         {
             _isShiftPressed = false;
-            base.OnKeyUp(e);
         }
 
         private void UpdateShowingCells()
@@ -1517,10 +1642,10 @@ namespace Sudoku.SpecialControls
                     IsConflict = _map.IsCellConflict(cell.Row, cell.Column)
                 };
 
-                var groups = new Dictionary<int, Map.GroupType>();
+                var groups = new Dictionary<int, GroupType>();
                 foreach (var gID in cell.Groups)
                 {
-                    Map.GroupInfo group = Map.GetGroups().Find(g => g.ID == gID);
+                    GroupInfo group = Map.GetGroups().Find(g => g.ID == gID);
                     groups.Add(group.ID, group.Type);
                 }
 

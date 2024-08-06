@@ -73,6 +73,16 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ClearingIcon {
+            get {
+                object obj = ResourceManager.GetObject("ClearingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap InteractiveCellIcon {
             get {
                 object obj = ResourceManager.GetObject("InteractiveCellIcon", resourceCulture);
@@ -86,6 +96,16 @@ namespace Sudoku.Properties {
         internal static System.Drawing.Bitmap NonInteractiveCellIcon {
             get {
                 object obj = ResourceManager.GetObject("NonInteractiveCellIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SavingIcon {
+            get {
+                object obj = ResourceManager.GetObject("SavingIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

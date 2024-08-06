@@ -35,6 +35,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -53,8 +54,11 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="MapGraphics\MapDrawer.cs" />
-    <Compile Include="MapLogic\GroupInterface.cs" />
-    <Compile Include="MapLogic\CellInterface.cs" />
+    <Compile Include="MapLogic\CellInfo.cs" />
+    <Compile Include="MapLogic\ConflictInfo.cs" />
+    <Compile Include="MapLogic\GroupInfo.cs" />
+    <Compile Include="MapPlayingLogic\GroupInterface.cs" />
+    <Compile Include="MapPlayingLogic\CellInterface.cs" />
     <Compile Include="MapLogic\Map.cs" />
     <Compile Include="MapPlayingLogic\MapInterface.cs" />
     <Compile Include="Program.cs" />
@@ -103,6 +107,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\Иконка изменения.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка сохранения.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка очищения.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

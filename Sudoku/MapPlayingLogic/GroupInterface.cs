@@ -1,12 +1,12 @@
 ﻿namespace Sudoku.MapLogic
 {
-    internal class GroupInterface
+    internal sealed class GroupInterface
     {
         private int _id;
-        private Map.GroupType _type;
+        private GroupType _type;
         private int _sum;
 
-        public GroupInterface(int id, Map.GroupType type, int sum) 
+        public GroupInterface(int id, GroupType type, int sum) 
         {
             _id = id;
             _type = type;
@@ -15,15 +15,15 @@
 
         public int ID { get { return _id; } }
 
-        public Map.GroupType Type { get { return _type; } }
+        public GroupType Type { get { return _type; } }
 
         public int Sum { get { return _sum; } }
 
         public bool IsSelected { get; set; }
 
-        public Map.GroupInfo GetInfo()
+        public GroupInfo GetInfo()
         {
-            return new Map.GroupInfo(ID, Type, Sum, IsSelected);
+            return new GroupInfo(ID, Type, Sum, IsSelected);
         }
 
         public static bool operator ==(GroupInterface left, GroupInterface right)

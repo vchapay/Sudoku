@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
-    [Serializable]
     /// <summary>
     /// Предоставляет оболочку над закрытым типом Cell для использования в игровой сессии
     /// </summary>
-    internal class CellInterface
+    internal sealed class CellInterface
     {
         private readonly int _correct;
         private int _entered;
@@ -135,9 +133,9 @@ namespace Sudoku.MapLogic
             _notes.Clear();
         }
 
-        public Map.CellInfo GetInfo()
+        public CellInfo GetInfo()
         {
-            return new Map.CellInfo(Row, Column, 
+            return new CellInfo(Row, Column, 
                 Correct, _groups, IsAvailable, IsSelected);
         }
 

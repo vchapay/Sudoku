@@ -1,9 +1,8 @@
 ﻿using Sudoku.MapPlayingLogic;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 
 namespace Sudoku.MapLogic
 {
@@ -23,12 +22,12 @@ namespace Sudoku.MapLogic
         Colors,
     }
 
-    [Serializable]
+    [DataContract]
     /// <summary>
     /// Описывает карту и предоставляет средства для ее редактирования,
     /// а также получения интерфейса для проигрывания
     /// </summary>
-    internal class Map
+    internal sealed class Map
     {
         /// <summary>
         /// Минимальное значение для ширины и длины карты в ячейках.
@@ -45,10 +44,15 @@ namespace Sudoku.MapLogic
         private const string _areaNotFoundMessage = "Область с полученным идентификатором не найдена";
         private const string _creatingInterfaceWithConflictsMessage = "Нельзя получить интерфейс карты с конфликтными ячейками";
         private const string _incorrectSizesForCopyOperationMessage = "Копирование невозможно, если карты имеют разные размеры";
+
         private MapTypes _type;
+
         private readonly List<Cell> _cells = new List<Cell>();
+
         private readonly List<Conflict> _conflicts = new List<Conflict>();
+
         private readonly List<Group> _groups = new List<Group>();
+
         private readonly List<Group> _selectedGroups = new List<Group>();
         private readonly List<MapSave> _saves = new List<MapSave>();
         private int _savesCapacity;
@@ -105,7 +109,7 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Возвращает число конфликтов между ячейками.
         /// </summary>
-        public int ConflictsCount => _conflicts.Count;
+        public int ConflictsCount { get { return _conflicts.Count; } }
 
         /// <summary>
         /// Возвращает или задает объем буфера для быстрых сохранений карты,
@@ -526,9 +530,10 @@ namespace Sudoku.MapLogic
             if (_saves.Count == 0)
                 Save();
 
-            for (int i = 0; i < _groups.Count; i++)
+            _conflicts.Clear();
+            for (; 0 < _groups.Count;)
             {
-                RemoveGroup(_groups[i].ID);
+                RemoveGroup(_groups[0].ID);
             }
 
             for (int i = 0; i < _cells.Count; i++)
@@ -944,7 +949,6 @@ namespace Sudoku.MapLogic
             _conflicts.Add(updatedConflict);
         }
 
-        [Serializable]
         private class Cell
         {
             private int _correct;
@@ -963,7 +967,7 @@ namespace Sudoku.MapLogic
             { 
                 get { return _correct; }
                 set {
-                    if (_correct > -1 && _correct < 10)
+                    if (_correct > -1 && _correct < 21)
                         _correct = value;
                 }
             }
@@ -1028,122 +1032,6 @@ namespace Sudoku.MapLogic
             }
         }
 
-        [Serializable]
-        /// <summary>
-        /// Предоставляет информацию о ячейке карты судоку.
-        /// </summary>
-        public class CellInfo
-        {
-            /// <summary>
-            /// Инициализирует новый экземпляр.
-            /// </summary>
-            /// <param name="row"></param>
-            /// <param name="column"></param>
-            /// <param name="correct"></param>
-            /// <param name="groups"></param>
-            /// <param name="isAvailable"></param>
-            /// <param name="isSelected"></param>
-            public CellInfo(int row, int column, 
-                int correct, IEnumerable<int> groups, bool isAvailable,
-                bool isSelected)
-            {
-                Row = row;
-                Column = column;
-                Correct = correct;
-                Groups = groups;
-                IsAvailable = isAvailable;
-                IsSelected = isSelected;
-            }
-
-            /// <summary>
-            /// Возвращает строку, в которой расположена ячейка.
-            /// </summary>
-            public int Row { get; }
-
-            /// <summary>
-            ///  Возвращает столбец, в которой расположена ячейка.
-            /// </summary>
-            public int Column { get; }
-
-            /// <summary>
-            /// Возвращает значение, являющееся решением ячейки.
-            /// </summary>
-            public int Correct { get; }
-
-            /// <summary>
-            /// Возвращает коллекцию идентификаторов групп, 
-            /// в которых состоит ячейка.
-            /// </summary>
-            public IEnumerable<int> Groups { get; }
-
-            /// <summary>
-            /// Возвращает значение, является ли ячейка 
-            /// доступной для ввода значений игроком.
-            /// </summary>
-            public bool IsAvailable { get; }
-
-            /// <summary>
-            /// Возвращает значение, выделена ли ячейка.
-            /// </summary>
-            public bool IsSelected { get; }
-
-            public static bool operator ==(CellInfo left, CellInfo right)
-            {
-                if (ReferenceEquals(null, left) && !ReferenceEquals(null, right))
-                    return false;
-
-                if (!ReferenceEquals(null, left) && ReferenceEquals(null, right))
-                    return false;
-
-                if (ReferenceEquals(null, left) && ReferenceEquals(null, right))
-                    return true;
-
-                return left.Equals(right);
-            }
-
-            public static bool operator !=(CellInfo left, CellInfo right)
-            {
-                if (ReferenceEquals(null, left) && !ReferenceEquals(null, right))
-                    return true;
-
-                if (!ReferenceEquals(null, left) && ReferenceEquals(null, right))
-                    return true;
-
-                if (ReferenceEquals(null, left) && ReferenceEquals(null, right))
-                    return false;
-
-                return left.Equals(right);
-            }
-
-            /// <summary>
-            /// Сравнивает текущий экземпляр ячейки с переданным объектом.
-            /// Если переданный объект также является экземпляром CellInfo,
-            /// использует для сравнения информацию о ячейках.
-            /// </summary>
-            /// <param name="obj"></param>
-            /// <returns></returns>
-            public override bool Equals(object obj)
-            {
-                if (obj == null)
-                    return false;
-
-                if (obj is CellInfo comp)
-                {
-                    bool rows = this.Row == comp.Row;
-                    bool cols = this.Column == comp.Column;
-                    return rows && cols;
-                }
-
-                else return false;
-            }
-
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
-            }
-        }
-
-        [Serializable]
         private class Conflict
         {
             private readonly List<Cell> _cells;
@@ -1170,57 +1058,14 @@ namespace Sudoku.MapLogic
             }
         }
 
-        [Serializable]
-        /// <summary>
-        /// Предоставляет информацию о конфликте карты судоку.
-        /// </summary>
-        public class ConflictInfo
-        {
-            private readonly IReadOnlyCollection<CellInfo> _cells;
-            private readonly int _conflictValue;
-
-            /// <summary>
-            /// Инициализирует новый экземпляр.
-            /// </summary>
-            /// <param name="cells"></param>
-            /// <param name="conflictValue"></param>
-            public ConflictInfo(IReadOnlyCollection<CellInfo> cells, int conflictValue)
-            {
-                _cells = cells;
-                _conflictValue = conflictValue;
-            }
-
-            /// <summary>
-            /// Возвращает конфликтное значение, из-за которого
-            /// существует конфликт между ячейками.
-            /// </summary>
-            public int ConflictValue => _conflictValue;
-
-            /// <summary>
-            /// Возвращает конфликтующие ячейки.
-            /// </summary>
-            public IReadOnlyCollection<CellInfo> Cells { get { return _cells; } }
-        }
-
-        /// <summary>
-        /// Перечисляет типы групп в картах судоку.
-        /// </summary>
-        public enum GroupType
-        {
-            Basic,
-            Sum
-        }
-
-        [Serializable]
         private class Group
         {
             private readonly int _id;
+
             private readonly List<Cell> _cells = new List<Cell>();
-            private Map _map;
 
             public Group(int id, Map map)
             {
-                _map = map;
                 _id = id;
                 Type = GroupType.Basic;
             }
@@ -1244,7 +1089,6 @@ namespace Sudoku.MapLogic
                 {
                     _cells.Add(cell);
                     cell.AddGroup(this);
-                    _map.UpdateConflicts(cell.Correct);
                     return true;
                 }
 
@@ -1282,61 +1126,17 @@ namespace Sudoku.MapLogic
             }
         }
 
-        [Serializable]
-        /// <summary>
-        /// Предоставляет информацию о группе карты судоку.
-        /// </summary>
-        public class GroupInfo
-        {
-            /// <summary>
-            /// Инициализирует новый экземпляр.
-            /// </summary>
-            /// <param name="id"></param>
-            /// <param name="type"></param>
-            /// <param name="sum"></param>
-            /// <param name="isSelected"></param>
-            public GroupInfo(int id, GroupType type, int sum, bool isSelected)
-            {
-                ID = id;
-                Type = type;
-                Sum = sum;
-                IsSelected = isSelected;
-            }
-
-            /// <summary>
-            /// Возвращает идентификатор группы.
-            /// </summary>
-            public int ID { get; }
-
-            /// <summary>
-            /// Возвращает тип группы.
-            /// </summary>
-            public GroupType Type { get; }
-
-            /// <summary>
-            /// Возвращает сумму значений решений входящих в группу ячеек.
-            /// </summary>
-            public int Sum { get; }
-
-            /// <summary>
-            /// Возвращает значение, выделена ли группа.
-            /// </summary>
-            public bool IsSelected { get; }
-        }
-
         private enum CellRulesType
         {
             GratherThan,
             Dots,
         }
 
-        [Serializable]
         private class CellRule
         {
 
         }
 
-        [Serializable]
         private class MapSave
         {
             private readonly List<CellInterface> _cells = new List<CellInterface>();
