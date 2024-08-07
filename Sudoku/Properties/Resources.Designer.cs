@@ -103,9 +103,29 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap RedoIcon {
+            get {
+                object obj = ResourceManager.GetObject("RedoIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap SavingIcon {
             get {
                 object obj = ResourceManager.GetObject("SavingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap UndoIcon {
+            get {
+                object obj = ResourceManager.GetObject("UndoIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

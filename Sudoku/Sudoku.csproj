@@ -33,9 +33,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Sudoku">
-      <HintPath>obj\Debug\Sudoku.exe</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -119,6 +116,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\Иконка очищения.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка отмены.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка восстановления.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

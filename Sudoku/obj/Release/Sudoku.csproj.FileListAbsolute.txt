@@ -1,0 +1,10 @@
+D:\VisualStudioProjects\Sudoku\Sudoku\bin\Release\Sudoku.exe.config
+D:\VisualStudioProjects\Sudoku\Sudoku\bin\Release\Sudoku.exe
+D:\VisualStudioProjects\Sudoku\Sudoku\bin\Release\Sudoku.pdb
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.csproj.AssemblyReference.cache
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.Form1.resources
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.Properties.Resources.resources
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.csproj.GenerateResource.cache
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.csproj.CoreCompileInputs.cache
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.exe
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Release\Sudoku.pdb
