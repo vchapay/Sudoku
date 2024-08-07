@@ -35,7 +35,7 @@ namespace Sudoku.SpecialControls
         private float _splitterRatio = 0.7f;
         private float _cellPanelHeight;
         private float _cellPanelsSplitterWidth;
-        private float _cellPanelScroll;
+        private float _scroll;
         private Font _noSelectedCellsMessageFont;
         private StringFormat _noSelectedCellsMessageFormat;
         private Brush _noSelectedCellsMessageBrush;
@@ -189,7 +189,7 @@ namespace Sudoku.SpecialControls
                     _noSelectedCellsMessageBrush, _cellEditRect, _noSelectedCellsMessageFormat);
             }
 
-            float nextY = _cellPanelScroll;
+            float nextY = _scroll;
             for (int i = 0; i < _showingCells.Count; i++)
             {
                 var cell = _showingCells[i];
@@ -1286,7 +1286,7 @@ namespace Sudoku.SpecialControls
 
             _addingPanel?.ChangeContainer(_editRect);
             _menuPanel?.ChangeContainer(_menuRect);
-            _cellPanelScroll = 0;
+            _scroll = 0;
             UpdateShowingCells();
             ValidateScroll();
             Invalidate();
@@ -1471,7 +1471,7 @@ namespace Sudoku.SpecialControls
                 return;
 
             float changing = e.Delta / 4;
-            _cellPanelScroll += changing;
+            _scroll += changing;
 
             ValidateScroll();
             Invalidate();
@@ -1485,14 +1485,14 @@ namespace Sudoku.SpecialControls
                 _showingCellsSumHeight += cell.Height + _cellPanelsSplitterWidth;
             }
 
-            if (_cellPanelScroll > 0)
-                _cellPanelScroll = 0;
+            if (_scroll > 0)
+                _scroll = 0;
 
-            if (_cellPanelScroll < _selectedCellsListRect.Height - _showingCellsSumHeight)
-                _cellPanelScroll = _selectedCellsListRect.Height - _showingCellsSumHeight;
+            if (_scroll < _selectedCellsListRect.Height - _showingCellsSumHeight)
+                _scroll = _selectedCellsListRect.Height - _showingCellsSumHeight;
 
             if (_selectedCellsListRect.Height > _showingCellsSumHeight)
-                _cellPanelScroll = 0;
+                _scroll = 0;
         }
 
         protected override void OnKeyDown(KeyEventArgs e)

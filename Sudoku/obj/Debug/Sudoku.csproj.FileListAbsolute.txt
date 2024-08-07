@@ -6,5 +6,5 @@ D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.Form1.resources
 D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.Properties.Resources.resources
 D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.csproj.GenerateResource.cache
 D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.csproj.CoreCompileInputs.cache
-D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.exe
 D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.pdb
+D:\VisualStudioProjects\Sudoku\Sudoku\obj\Debug\Sudoku.csproj.Up2Date

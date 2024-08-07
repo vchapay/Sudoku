@@ -1,6 +1,6 @@
 ﻿namespace Sudoku
 {
-    partial class Form1
+    public partial class Form1
     {
         /// <summary>
         /// Обязательная переменная конструктора.
@@ -22,23 +22,21 @@
 
         #region Код, автоматически созданный конструктором форм Windows
 
-        /// <summary>
-        /// Требуемый метод для поддержки конструктора — не изменяйте 
-        /// содержимое этого метода с помощью редактора кода.
-        /// </summary>
         private void InitializeComponent()
         {
             this.SuspendLayout();
             // 
             // Form1
             // 
-            this.ClientSize = new System.Drawing.Size(1335, 594);
+            this.ClientSize = new System.Drawing.Size(1354, 566);
+            this.Controls.Add(this.sudokuListBox1);
             this.Name = "Form1";
             this.ResumeLayout(false);
-
         }
 
         #endregion
+
+        private SpecialControls.SudokuListBox sudokuListBox1;
     }
 }
 

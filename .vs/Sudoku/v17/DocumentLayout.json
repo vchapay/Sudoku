@@ -1,53 +1,12 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "D:\\VisualStudioProjects\\Sudoku\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|D:\\VisualStudioProjects\\Sudoku\\sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|d:\\visualstudioprojects\\sudoku\\sudoku\\specialcontrols\\sudokumaker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\specialcontrols\\sudokumaker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": [
-        {
-          "DockedWidth": 200,
-          "SelectedChildIndex": 1,
-          "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "SudokuMaker.cs",
-              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\SpecialControls\\SudokuMaker.cs",
-              "RelativeDocumentMoniker": "Sudoku\\SpecialControls\\SudokuMaker.cs",
-              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\SpecialControls\\SudokuMaker.cs",
-              "RelativeToolTip": "Sudoku\\SpecialControls\\SudokuMaker.cs",
-              "ViewState": "AQIAABoGAAAAAAAAAAAcwAEGAAAYAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-06T13:38:31.936Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Form1.cs [\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440]",
-              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Form1.cs",
-              "RelativeDocumentMoniker": "Sudoku\\Form1.cs",
-              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Form1.cs [\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440]",
-              "RelativeToolTip": "Sudoku\\Form1.cs [\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-06T11:32:24.815Z",
-              "EditorCaption": " [\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440]"
-            }
-          ]
-        }
-      ]
+      "DocumentGroups": []
     }
   ]
 }
