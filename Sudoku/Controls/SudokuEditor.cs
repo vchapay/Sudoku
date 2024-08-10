@@ -8,12 +8,12 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Windows.Forms;
 
-namespace Sudoku.SpecialControls
+namespace Sudoku.Controls
 {
     /// <summary>
-    /// Элемент управления, предоставляющий средства создания и редактирования карт судоку.
+    /// Элемент управления, предоставляющий средства редактирования карт судоку.
     /// </summary>
-    internal sealed class SudokuMaker : Control
+    internal sealed class SudokuEditor : Control
     {
         private Map _map;
         private readonly MapDrawer _drawer;
@@ -45,9 +45,9 @@ namespace Sudoku.SpecialControls
         private BorderStyle _borderStyle;
 
         /// <summary>
-        /// Инициализирует новый экземпляр SudokuMaker.
+        /// Инициализирует новый экземпляр SudokuEditor.
         /// </summary>
-        public SudokuMaker()
+        public SudokuEditor()
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
                 ControlStyles.ResizeRedraw |
@@ -195,7 +195,8 @@ namespace Sudoku.SpecialControls
                 var cell = _showingCells[i];
                 cell.YIndent = nextY;
                 nextY += _cellPanelsSplitterWidth + cell.Height;
-                cell.Draw(g);
+                if (cell.YIndent + cell.Height > 0 && cell.YIndent < Height)
+                    cell.Draw(g);
             }
 
             g.FillRectangle(Brushes.White, _menuRect);

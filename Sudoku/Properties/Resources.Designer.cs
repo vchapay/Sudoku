@@ -63,6 +63,16 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap AddingIcon {
+            get {
+                object obj = ResourceManager.GetObject("AddingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ChangingIcon {
             get {
                 object obj = ResourceManager.GetObject("ChangingIcon", resourceCulture);
@@ -76,6 +86,46 @@ namespace Sudoku.Properties {
         internal static System.Drawing.Bitmap ClearingIcon {
             get {
                 object obj = ResourceManager.GetObject("ClearingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap CreatingIcon {
+            get {
+                object obj = ResourceManager.GetObject("CreatingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap CrossIcon {
+            get {
+                object obj = ResourceManager.GetObject("CrossIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ExportIcon {
+            get {
+                object obj = ResourceManager.GetObject("ExportIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ImportIcon {
+            get {
+                object obj = ResourceManager.GetObject("ImportIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -116,6 +166,16 @@ namespace Sudoku.Properties {
         internal static System.Drawing.Bitmap SavingIcon {
             get {
                 object obj = ResourceManager.GetObject("SavingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SearchingIcon {
+            get {
+                object obj = ResourceManager.GetObject("SearchingIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

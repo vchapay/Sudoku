@@ -35,6 +35,11 @@ namespace Sudoku.MapLogic
         public const int MinLength = 3;
 
         /// <summary>
+        /// Максимальное значение для ширины и длины карты в ячейках.
+        /// </summary>
+        public const int MaxLength = 20;
+
+        /// <summary>
         /// Стандартное значение для ширины и длины карты в ячейках.
         /// </summary>
         public const int BaseLength = 9;
@@ -65,11 +70,11 @@ namespace Sudoku.MapLogic
         /// <param name="heght"></param>
         public Map(int width, int heght) 
         {
-            if (width < MinLength)
-                width = MinLength;
+            if (width < MinLength || width > MaxLength)
+                width = BaseLength;
 
-            if (heght < MinLength)
-                heght = MinLength;
+            if (heght < MinLength || heght > MaxLength)
+                heght = BaseLength;
 
             ColumnsCount = width;
             RowsCount = heght;
@@ -102,9 +107,14 @@ namespace Sudoku.MapLogic
         public MapTypes Type { get { return _type; } }
 
         /// <summary>
-        /// Возвращает или задает название карты.
+        /// Название карты.
         /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// Описание карты.
+        /// </summary>
+        public string Description { get; set; }
 
         /// <summary>
         /// Возвращает число конфликтов между ячейками.
@@ -112,7 +122,7 @@ namespace Sudoku.MapLogic
         public int ConflictsCount { get { return _conflicts.Count; } }
 
         /// <summary>
-        /// Возвращает или задает объем буфера для быстрых сохранений карты,
+        /// Объем буфера для быстрых сохранений карты,
         /// необходимых для поддержки методов Redo и Undo.
         /// </summary>
         public int SavesCapacity

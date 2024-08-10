@@ -5,7 +5,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Sudoku.SpecialControls
+namespace Sudoku.Controls
 {
     internal sealed class SudokuPlayerDisplay : Control
     {
@@ -38,6 +38,7 @@ namespace Sudoku.SpecialControls
 
         protected override void OnPaint(PaintEventArgs e)
         {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
             e.Graphics.Clear(Color.White);
             _drawer.Draw(e.Graphics, ClientRectangle, _dataSource);
         }

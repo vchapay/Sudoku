@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using static Sudoku.MapLogic.Map;
 
 namespace Sudoku.MapGraphics
 {
@@ -39,7 +38,9 @@ namespace Sudoku.MapGraphics
         private readonly Brush _rowsColsSelectionBrush;
         private readonly Brush _sumAreaSelectionBrush;
         private readonly Brush _conflictCellBrush;
-        private readonly Brush _bgBrush;
+        private readonly HatchBrush _bgHatchBrush;
+        private LinearGradientBrush _bgGradientBrush;
+        private RectangleF _canvasRect;
         private readonly Pen _cellSelectionPen;
         private readonly Pen _defaultAreaPen;
         private readonly Pen _sumAreaPen;
@@ -113,7 +114,7 @@ namespace Sudoku.MapGraphics
             _sumAreaSelectionBrush = new SolidBrush(Color.FromArgb(30, 0, 250, 50));
             _sameContentCellsSelectionBrush = new SolidBrush(Color.FromArgb(50, 0, 240, 200));
             _basicAreaSelectionBrush = new SolidBrush(Color.FromArgb(20, 0, 190, 220));
-            _bgBrush = new HatchBrush(HatchStyle.DiagonalCross, 
+            _bgHatchBrush = new HatchBrush(HatchStyle.DiagonalCross, 
                 Color.FromArgb(230, 230, 230), Color.White);
         }
 
@@ -235,53 +236,35 @@ namespace Sudoku.MapGraphics
             float xIndent = (display.Width - _imageWidth) / 2;
             float yIndent = (display.Height - _imageHeight) / 2;
             _imagePosition = new PointF(xIndent, yIndent);
+
+            _canvasRect = new RectangleF()
+            {
+                X = 0,
+                Y = 0,
+                Width = _imageWidth + _imagePosition.X * 2,
+                Height = _imageHeight + _imagePosition.Y * 2
+            };
         }
 
         private void DrawBackGround(Graphics g)
         {
-            if (_imagePosition.X > 0)
+            RectangleF gradRect = new RectangleF()
             {
-                RectangleF leftRect = new RectangleF()
-                {
-                    X = 0,
-                    Y = 0,
-                    Width = _imagePosition.X - 1,
-                    Height = _imageHeight
-                };
+                X = 0,
+                Y = 0,
+                Width = _imageWidth,
+                Height = _imageHeight
+            };
 
-                RectangleF rightRect = new RectangleF()
-                {
-                    X = _imageWidth + _imagePosition.X,
-                    Y = 0,
-                    Width = _imagePosition.X - 1,
-                    Height = _imageHeight
-                };
+            _bgGradientBrush = new LinearGradientBrush(_canvasRect,
+            Color.FromArgb(15, 250, 250, 250),
+            Color.FromArgb(45, 200, 200, 240), 90);
 
-                g.FillRectangle(_bgBrush, leftRect);
-                g.FillRectangle(_bgBrush, rightRect);
-            }
+            g.FillRectangle(_bgHatchBrush, _canvasRect);
+            g.FillRectangle(_bgGradientBrush, _canvasRect);
 
-            else
-            {
-                RectangleF topRect = new RectangleF()
-                {
-                    X = 0,
-                    Y = 0,
-                    Width = _imageWidth,
-                    Height = _imagePosition.Y - 1
-                };
-
-                RectangleF bottomRect = new RectangleF()
-                {
-                    X = 0,
-                    Y = _imageHeight + _imagePosition.Y,
-                    Width = _imageWidth,
-                    Height = _imagePosition.Y - 1
-                };
-
-                g.FillRectangle(_bgBrush, topRect);
-                g.FillRectangle(_bgBrush, bottomRect);
-            }
+            g.FillRectangle(Brushes.White, _imagePosition.X,
+                _imagePosition.Y, _imageWidth, _imageHeight);
         }
 
         private float FindCellSize(SizeF display, Size map)

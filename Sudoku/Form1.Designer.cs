@@ -21,35 +21,38 @@
         }
 
         #region Код, автоматически созданный конструктором форм Windows
-
         private void InitializeComponent()
         {
-            this.sudokuListBox2 = new Sudoku.SpecialControls.SudokuListBox();
+            this.scenesContainer = new Sudoku.Controls.ScenesContainer();
             this.SuspendLayout();
             // 
-            // sudokuListBox2
+            // scenesContainer
             // 
-            this.sudokuListBox2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.sudokuListBox2.Location = new System.Drawing.Point(196, 51);
-            this.sudokuListBox2.Name = "sudokuListBox2";
-            this.sudokuListBox2.Size = new System.Drawing.Size(979, 532);
-            this.sudokuListBox2.TabIndex = 0;
-            this.sudokuListBox2.Text = "sudokuListBox2";
+            this.scenesContainer.BackColor = System.Drawing.Color.White;
+            this.scenesContainer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.scenesContainer.Control = null;
+            this.scenesContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.scenesContainer.Location = new System.Drawing.Point(0, 0);
+            this.scenesContainer.Name = "scenesContainer";
+            this.scenesContainer.Size = new System.Drawing.Size(1539, 693);
+            this.scenesContainer.TabIndex = 0;
+            this.scenesContainer.Text = "scenesContainer1";
+            this.scenesContainer.BackButtonClicked += new System.EventHandler(this.BackScene);
+            this.scenesContainer.ExitButtonClicked += new System.EventHandler(this.CloseForm);
             // 
             // Form1
             // 
-            this.ClientSize = new System.Drawing.Size(1346, 622);
-            this.Controls.Add(this.sudokuListBox2);
+            this.ClientSize = new System.Drawing.Size(1539, 693);
+            this.Controls.Add(this.scenesContainer);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Form1";
-            this.Text = "b";
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private SpecialControls.SudokuListBox sudokuListBox1;
-        private SpecialControls.SudokuListBox sudokuListBox2;
+        private Controls.ScenesContainer scenesContainer;
     }
 }
 
