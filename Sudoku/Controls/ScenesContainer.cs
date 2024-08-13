@@ -57,10 +57,14 @@ namespace Sudoku.Controls
             }
             set
             {
-                _control = value;
-                Controls.Clear();
-                Controls.Add(_control);
-                OnResize(EventArgs.Empty);
+                if (value != null)
+                {
+                    _control = value;
+                    Controls.Clear();
+                    Controls.Add(_control);
+                    _control.Select();
+                    OnResize(EventArgs.Empty);
+                }
             }
         }
 
@@ -80,6 +84,8 @@ namespace Sudoku.Controls
             }
         }
 
+        public bool IsBackButtonVisible { get; set; }
+
         public event EventHandler BackButtonClicked;
 
         public event EventHandler ExitButtonClicked;
@@ -95,7 +101,9 @@ namespace Sudoku.Controls
             g.DrawRectangle(_panelsPen, _topPanelRect);
             g.DrawRectangle(_panelsPen, _controlRect);
 
-            _backBtn.Draw(g);
+            if (IsBackButtonVisible)
+                _backBtn.Draw(g);
+
             _exitBtn.Draw(g);
 
             switch (_borderStyle)

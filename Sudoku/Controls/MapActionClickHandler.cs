@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace Sudoku.Controls
 {
-    delegate void MapPanelButtonClickHandler(object sender, MapPanelButtonClickArgs e);
+    delegate void MapActionClickHandler(object sender, MapActionClickArgs e);
 }

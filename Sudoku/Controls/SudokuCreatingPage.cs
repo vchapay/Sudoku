@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace Sudoku.Controls
 {
-    internal class MapCreatingPage : Control
+    internal class SudokuCreatingPage : Control
     {
         private HatchBrush _bgHatchBrush;
         private LinearGradientBrush _bgGradientBrush;
@@ -24,7 +24,7 @@ namespace Sudoku.Controls
         private SolidBrush _textBrush;
         private Font _lblsFont;
 
-        public MapCreatingPage() 
+        public SudokuCreatingPage() 
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
                 ControlStyles.ResizeRedraw |
@@ -38,17 +38,20 @@ namespace Sudoku.Controls
                 Text = "map1",
                 Font = new Font("Times New Roman", 36)
             };
+
             _descriptionBox = new SudokuControlModel()
             {
                 TextVertAligment = StringAlignment.Near,
                 TextMaxLenght = 400,
                 TextTrimming = 410
             };
+
             _rowsBox = new SudokuControlModel()
             {
                 Text = "9",
                 TextMaxLenght = 2
             };
+
             _columnsBox = new SudokuControlModel()
             {
                 Text = "9",

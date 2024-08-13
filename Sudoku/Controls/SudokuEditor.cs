@@ -42,7 +42,9 @@ namespace Sudoku.Controls
         private Brush _editRectBrush;
         private float _showingCellsSumHeight;
         private bool _isShiftPressed;
+        private bool _isSaved;
         private BorderStyle _borderStyle;
+        
 
         /// <summary>
         /// Инициализирует новый экземпляр SudokuEditor.
@@ -116,6 +118,12 @@ namespace Sudoku.Controls
         }
 
         /// <summary>
+        /// Возвращает значение, указывающее,
+        /// были ли все последние изменения карты сохранены
+        /// </summary>
+        public bool IsMapSaved => _isSaved;
+
+        /// <summary>
         /// Высота панели с информацией о выделенной ячейке.
         /// </summary>
         public float CellPanelHeight
@@ -163,6 +171,11 @@ namespace Sudoku.Controls
         /// при нажатии на кнопку сохранения
         /// </summary>
         public string SavePath { get; set; }
+
+        /// <summary>
+        /// Происходит при нажатии кнопки "сохранить карту".
+        /// </summary>
+        public event MapActionClickHandler SaveButtonClicked;
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -1440,17 +1453,13 @@ namespace Sudoku.Controls
                 _map.Undo();
             }
 
+            if (!_isSelecting)
+                _isSaved = false;
+
             if (_menuPanel.IsSaveButtonPressed)
             {
-                if (!string.IsNullOrEmpty(SavePath))
-                {
-                    using (Stream stream = File.Open(SavePath, 
-                        FileMode.OpenOrCreate, FileAccess.Write))
-                    {
-                        DataContractSerializer serializer = new DataContractSerializer(_map.GetType());
-                        serializer.WriteObject(stream, _map);
-                    }
-                }
+                OnSaveButtonClick(new MapActionClickArgs(_map));
+                _isSaved = true;
             }
 
             _menuPanel.IsClearButtonPressed = false;
@@ -1502,7 +1511,19 @@ namespace Sudoku.Controls
                 _isShiftPressed = true;
             }
 
+            _isSaved = false;
+
             if (e.Control)
+            {
+                switch (e.KeyCode)
+                {
+                    case Keys.S:
+                        OnSaveButtonClick(new MapActionClickArgs(_map));
+                        break;
+                }
+            }
+
+            if (e.Alt)
             {
                 switch (e.KeyCode)
                 {
@@ -1652,6 +1673,11 @@ namespace Sudoku.Controls
                 cellPanel.Groups = groups;
                 _showingCells.Add(cellPanel);
             }
+        }
+
+        private void OnSaveButtonClick(MapActionClickArgs e)
+        {
+            SaveButtonClicked?.Invoke(this, e);
         }
     }
 }

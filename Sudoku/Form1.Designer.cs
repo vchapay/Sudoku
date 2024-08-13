@@ -23,36 +23,37 @@
         #region Код, автоматически созданный конструктором форм Windows
         private void InitializeComponent()
         {
-            this.scenesContainer = new Sudoku.Controls.ScenesContainer();
+            this._scenesContainer = new Sudoku.Controls.ScenesContainer();
             this.SuspendLayout();
             // 
-            // scenesContainer
+            // _scenesContainer
             // 
-            this.scenesContainer.BackColor = System.Drawing.Color.White;
-            this.scenesContainer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.scenesContainer.Control = null;
-            this.scenesContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.scenesContainer.Location = new System.Drawing.Point(0, 0);
-            this.scenesContainer.Name = "scenesContainer";
-            this.scenesContainer.Size = new System.Drawing.Size(1539, 693);
-            this.scenesContainer.TabIndex = 0;
-            this.scenesContainer.Text = "scenesContainer1";
-            this.scenesContainer.BackButtonClicked += new System.EventHandler(this.BackScene);
-            this.scenesContainer.ExitButtonClicked += new System.EventHandler(this.CloseForm);
+            this._scenesContainer.BackColor = System.Drawing.Color.White;
+            this._scenesContainer.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this._scenesContainer.Control = null;
+            this._scenesContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._scenesContainer.IsBackButtonVisible = false;
+            this._scenesContainer.Location = new System.Drawing.Point(0, 0);
+            this._scenesContainer.Name = "_scenesContainer";
+            this._scenesContainer.Size = new System.Drawing.Size(1527, 651);
+            this._scenesContainer.TabIndex = 0;
+            this._scenesContainer.Text = "scenesContainer1";
+            this._scenesContainer.BackButtonClicked += new System.EventHandler(this.BackScene);
+            this._scenesContainer.ExitButtonClicked += new System.EventHandler(this.CloseForm);
             // 
             // Form1
             // 
-            this.ClientSize = new System.Drawing.Size(1539, 693);
-            this.Controls.Add(this.scenesContainer);
+            this.ClientSize = new System.Drawing.Size(1527, 651);
+            this.Controls.Add(this._scenesContainer);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Form1";
             this.ResumeLayout(false);
 
         }
-
         #endregion
 
-        private Controls.ScenesContainer scenesContainer;
+        private Controls.SudokuMainMenu sudokuMainMenu1;
+        private Controls.ScenesContainer _scenesContainer;
     }
 }
 

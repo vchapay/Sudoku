@@ -1,10 +1,10 @@
-﻿using System.Windows.Forms;
-using System.Collections.Generic;
-using Sudoku.MapLogic;
+﻿using Sudoku.MapLogic;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Windows.Forms;
 namespace Sudoku.Controls
 {
     internal class SudokuMapsPage : Control
@@ -159,17 +159,17 @@ namespace Sudoku.Controls
         /// <summary>
         /// Происходит при нажатии кнопки "удалить карту".
         /// </summary>
-        public event MapPanelButtonClickHandler DeleteMapButtonClicked;
+        public event MapActionClickHandler DeleteMapButtonClicked;
 
         /// <summary>
         /// Происходит при нажатии кнопки "открыть карту".
         /// </summary>
-        public event MapPanelButtonClickHandler ViewMapButtonClicked;
+        public event MapActionClickHandler ViewMapButtonClicked;
 
         /// <summary>
         /// Происходит при нажатии кнопки "выгрузить карту".
         /// </summary>
-        public event MapPanelButtonClickHandler ExportMapButtonClicked;
+        public event MapActionClickHandler ExportMapButtonClicked;
 
         /// <summary>
         /// Происходит при нажатии кнопки "открыть карту".
@@ -232,6 +232,28 @@ namespace Sudoku.Controls
             }
 
             return false;
+        }
+
+        public Map FindMap(Func<Map, bool> predicate)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException();
+
+            return _maps.Where(predicate).FirstOrDefault();
+        }
+
+        public Map Find(string name)
+        {
+            if (name == null)
+                throw new ArgumentNullException();
+
+            return _maps.Where(m => m.Name == name).FirstOrDefault();
+        }
+
+        public void Clear()
+        {
+            _maps.Clear();
+            _mapPanels.Clear();
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -390,13 +412,13 @@ namespace Sudoku.Controls
 
                     if (panel.ViewButton.IsPressed)
                     {
-                        OnViewButtonClick(new MapPanelButtonClickArgs(
+                        OnViewButtonClick(new MapActionClickArgs(
                             _maps.Where(m => m.Name == panel.MapName).First()));
                     }
 
                     if (panel.DeleteButton.IsPressed)
                     {
-                        OnDeleteButtonClick(new MapPanelButtonClickArgs(
+                        OnDeleteButtonClick(new MapActionClickArgs(
                             _maps.Where(m => m.Name == panel.MapName).First()));
 
                         _mapPanels.RemoveAll(p => p == panel);
@@ -406,7 +428,7 @@ namespace Sudoku.Controls
 
                     if (panel.ExportButton.IsPressed)
                     {
-                        OnExportButtonClick(new MapPanelButtonClickArgs(
+                        OnExportButtonClick(new MapActionClickArgs(
                             _maps.Where(m => m.Name == panel.MapName).First()));
                     }
 
@@ -498,6 +520,9 @@ namespace Sudoku.Controls
 
         private void ShowSearchResult(string name)
         {
+            if (name == null)
+                return;
+
             foreach (var panel in _mapPanels) 
             {
                 if (panel.MapName.Contains(name))
@@ -732,17 +757,17 @@ namespace Sudoku.Controls
                 _scroll = 0;
         }
 
-        private void OnViewButtonClick(MapPanelButtonClickArgs e)
+        private void OnViewButtonClick(MapActionClickArgs e)
         {
             ViewMapButtonClicked?.Invoke(this, e);
         }
 
-        private void OnDeleteButtonClick(MapPanelButtonClickArgs e)
+        private void OnDeleteButtonClick(MapActionClickArgs e)
         {
             DeleteMapButtonClicked?.Invoke(this, e);
         }
 
-        private void OnExportButtonClick(MapPanelButtonClickArgs e)
+        private void OnExportButtonClick(MapActionClickArgs e)
         {
             ExportMapButtonClicked?.Invoke(this, e);
         }
