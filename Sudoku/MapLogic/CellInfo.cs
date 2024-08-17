@@ -1,7 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
+    public enum CellState
+    {
+        /// <summary>
+        /// В ячейку может быть записано значение, но 
+        /// ее решением может быть пустое значение.
+        /// </summary>
+        Unknown = 0,
+
+        /// <summary>
+        /// В ячейку не может быть записано значение
+        /// (она заблокирована или верное значение открыто).
+        /// </summary>
+        Blocked,
+
+        /// <summary>
+        /// В ячейку должно быть записано значение, так 
+        /// как ее решением не может быть пустое значение.
+        /// </summary>
+        MustToWrite
+    }
+
+    [Serializable]
     /// <summary>
     /// Предоставляет информацию о ячейке карты судоку.
     /// </summary>

@@ -1,10 +1,12 @@
 ﻿using System.Drawing;
-using System.Windows.Forms;
 
 namespace Sudoku.Controls
 {
     internal class SudokuControlModel
     {
+        private int _width;
+        private int _height;
+
         private Pen _pen;
         private Pen _selectionPen;
         private SolidBrush _selectionBrush;
@@ -37,9 +39,29 @@ namespace Sudoku.Controls
 
         public int Y { get; set; }
 
-        public int Width { get; set; }
+        public int Width 
+        {
+            get 
+            {
+                return _width;
+            }
+            set
+            {
+                _width = value > 0 ? value : 1;
+            }
+        }
 
-        public int Height { get; set; }
+        public int Height
+        {
+            get
+            {
+                return _height;
+            }
+            set
+            {
+                _height = value > 0 ? value : 1;
+            }
+        }
 
         public int Right => X + Width;
 
@@ -67,6 +89,10 @@ namespace Sudoku.Controls
                         value = value.Substring(0, _textMax);
 
                     _text = value;
+                }
+                else
+                {
+                    _text = string.Empty;
                 }
             }
         }
@@ -160,7 +186,7 @@ namespace Sudoku.Controls
 
         public Image Image { get; set; }
 
-        public void Draw(Graphics g)
+        public virtual void Draw(Graphics g)
         {
             Rectangle bounds = new Rectangle(X, Y, Width, Height);
 

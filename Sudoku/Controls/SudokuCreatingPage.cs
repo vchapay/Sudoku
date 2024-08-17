@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Sudoku.Controls
@@ -36,7 +37,8 @@ namespace Sudoku.Controls
             _nameBox = new SudokuControlModel()
             {
                 Text = "map1",
-                Font = new Font("Times New Roman", 36)
+                Font = new Font("Times New Roman", 36),
+                TextTrimming = 30
             };
 
             _descriptionBox = new SudokuControlModel()
@@ -97,11 +99,30 @@ namespace Sudoku.Controls
             _lblsFont = new Font("Times New Roman", 16);
         }
 
-        /// <summary>
-        /// Список названий карт, которые уже использованы
-        /// и не могут быть использованы повторно
-        /// </summary>
-        public string[] UsedNames { get; set; }
+        public string MapName
+        {
+            get 
+            {
+                return _nameBox?.Text;
+            }
+            set
+            {
+                if (_nameBox != null)
+                    _nameBox.Text = value;
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                return _descriptionBox?.Text;
+            }
+            set
+            {
+                _descriptionBox.Text = value;
+            }
+        }
 
         /// <summary>
         /// Происходит при нажатии на кнопку "Создать"
@@ -130,7 +151,7 @@ namespace Sudoku.Controls
         {
             _nameBox.Width = Width * 5 / 10;
             _nameBox.Height = 80;
-            _nameBox.Y = 5;
+            _nameBox.Y = Height * 2 / 10;
             _nameBox.X = (Width - _nameBox.Width) / 2;
 
             _descriptionBox.Width = Width * 7 / 10;
@@ -165,8 +186,8 @@ namespace Sudoku.Controls
             _columnsBox.X = (Width - _columnsBox.Width) / 2;
 
             _createBtn.Width = Width * 4 / 10;
-            _createBtn.Height = 70;
-            _createBtn.Y = ClientRectangle.Bottom - 5 - _createBtn.Height;
+            _createBtn.Height = Height / 10;
+            _createBtn.Y = ClientRectangle.Bottom - _createBtn.Height - 10;
             _createBtn.X = (Width - _createBtn.Width) / 2;
         }
 
@@ -225,6 +246,8 @@ namespace Sudoku.Controls
             {
                 if (box.IsPressed)
                 {
+                    box.BackColor = Color.FromArgb(180, Color.White);
+
                     if (box == _nameBox)
                         if (@"/\|*<>:?""".Contains(e.KeyChar.ToString()))
                             return;

@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
+    [Serializable]
     /// <summary>
     /// Предоставляет информацию о конфликте карты судоку.
     /// </summary>

@@ -93,6 +93,26 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap CollapsingIcon {
+            get {
+                object obj = ResourceManager.GetObject("CollapsingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap CopyingIcon {
+            get {
+                object obj = ResourceManager.GetObject("CopyingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap CreatingIcon {
             get {
                 object obj = ResourceManager.GetObject("CreatingIcon", resourceCulture);
@@ -106,6 +126,16 @@ namespace Sudoku.Properties {
         internal static System.Drawing.Bitmap CrossIcon {
             get {
                 object obj = ResourceManager.GetObject("CrossIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ExpandingIcon {
+            get {
+                object obj = ResourceManager.GetObject("ExpandingIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -133,9 +163,9 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap InteractiveCellIcon {
+        internal static System.Drawing.Bitmap NonInteractiveCellIcon {
             get {
-                object obj = ResourceManager.GetObject("InteractiveCellIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("NonInteractiveCellIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -143,9 +173,9 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NonInteractiveCellIcon {
+        internal static System.Drawing.Bitmap PencilIcon {
             get {
-                object obj = ResourceManager.GetObject("NonInteractiveCellIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("PencilIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

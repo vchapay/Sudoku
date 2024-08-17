@@ -9,7 +9,7 @@ namespace Sudoku.Controls
 {
     internal class SudokuMapsPage : Control
     {
-        private const int _defaultMapInfoPanelHeight = 50;
+        private const int _defaultMapInfoPanelHeight = 80;
 
         private readonly HashSet<Map> _maps;
         private readonly List<MapInfoPanel> _mapPanels;
@@ -17,6 +17,7 @@ namespace Sudoku.Controls
         private int _splitterWidth;
 
         private Rectangle _mapListRect;
+        private Rectangle _topPanelRect;
         private Rectangle _bottomPanelRect;
 
         private SudokuControlModel _createMapBtn;
@@ -30,6 +31,9 @@ namespace Sudoku.Controls
 
         private HatchBrush _bgHatchBrush;
         private LinearGradientBrush _bgGradientBrush;
+        private SolidBrush _textBrush;
+
+        private StringFormat _format;
 
         private string _mapsDirPath;
 
@@ -46,85 +50,41 @@ namespace Sudoku.Controls
             _createMapBtn = new SudokuControlModel()
             {
                 Image = Properties.Resources.AddingIcon,
-                BackColor = Color.FromArgb(100, 100, 140, 230)
+                BackColor = Color.FromArgb(50, 180, 220, 254)
             };
 
             _importMapBtn = new SudokuControlModel()
             {
                 Image = Properties.Resources.ImportIcon,
-                BackColor = Color.FromArgb(70, 90, 180, 230)
+                BackColor = Color.FromArgb(50, 120, 210, 254)
             };
 
             _searchBox = new SudokuControlModel()
             {
-                BackColor = Color.FromArgb(100, 180, 180, 210),
+                BackColor = Color.FromArgb(50, 180, 180, 210),
                 TextTrimming = 32
             };
 
             _searchBtn = new SudokuControlModel()
             {
                 Image = Properties.Resources.SearchingIcon,
-                BackColor = Color.FromArgb(100, 160, 200, 240)
+                BackColor = Color.FromArgb(50, 160, 200, 240)
             };
 
             _resetSearchBtn = new SudokuControlModel()
             {
                 Image = Properties.Resources.CrossIcon,
-                BackColor = Color.FromArgb(140, 230, 180, 170)
+                BackColor = Color.FromArgb(50, 230, 180, 170)
             };
+
+            _maps = new HashSet<Map>();
+
+            _mapPanels = new List<MapInfoPanel>();
 
             Width = 300;
             Height = 300;
             DoubleBuffered = true;
-            Map map1 = new Map()
-            {
-                Name = "TestMap"
-            };
-
-            Map map2 = new Map()
-            {
-                Name = "TemtMap"
-            };
-
-            Map map3 = new Map()
-            {
-                Name = "TespPamEfeearfd"
-            };
-
-            _maps = new HashSet<Map>()
-            {
-                map1,
-                map2,
-                map3
-            };
-
-            _mapPanels = new List<MapInfoPanel>()
-            {
-                new MapInfoPanel(_mapListRect)
-                {
-                    Height = _defaultMapInfoPanelHeight,
-                    MapName = map1.Name,
-                    MapSize = new Size(map1.ColumnsCount, map1.RowsCount),
-                    IsVisible = true,
-                },
-
-                new MapInfoPanel(_mapListRect)
-                {
-                    Height = _defaultMapInfoPanelHeight,
-                    MapName = map2.Name,
-                    MapSize = new Size(map2.ColumnsCount, map2.RowsCount),
-                    IsVisible = true,
-                },
-
-                new MapInfoPanel(_mapListRect)
-                {
-                    Height = _defaultMapInfoPanelHeight,
-                    MapName = map3.Name,
-                    MapSize = new Size(map3.ColumnsCount, map3.RowsCount),
-                    IsVisible = true,
-                },
-            };
-
+            
             _splitterWidth = 3;
 
             _bgHatchBrush = new HatchBrush(HatchStyle.Sphere,
@@ -133,6 +93,16 @@ namespace Sudoku.Controls
             _bgGradientBrush = new LinearGradientBrush(ClientRectangle, 
                 Color.FromArgb(120, 250, 250, 250), 
                 Color.FromArgb(70, 190, 190, 210), 72);
+
+            _textBrush = new SolidBrush(Color.FromArgb(100, 150, 150, 150));
+
+            _format = new StringFormat()
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+            };
+
+            Font = new Font("Times New Roman", 35);
         }
 
         /// <summary>
@@ -194,12 +164,12 @@ namespace Sudoku.Controls
             if (map == null)
                 throw new ArgumentNullException();
 
-            if (_maps.Where(m => m.Name == map.Name).Count() > 0)
-                throw new ArgumentException("Карта с таким названием уже существует");
+            if (_maps.Where(m => m.ID == map.ID).Count() > 0)
+                throw new ArgumentException("Карта с таким идентификатором уже существует");
 
             if (_maps.Add(map))
             {
-                MapInfoPanel panel = new MapInfoPanel(_mapListRect)
+                MapInfoPanel panel = new MapInfoPanel(_mapListRect, map.ID)
                 {
                     Height = _defaultMapInfoPanelHeight,
                     MapSize = new Size(map.ColumnsCount, map.RowsCount),
@@ -227,7 +197,7 @@ namespace Sudoku.Controls
 
             if (_maps.Remove(map))
             {
-                _mapPanels.RemoveAll(p => p.MapName == map.Name);
+                _mapPanels.RemoveAll(p => p.MapID == map.ID);
                 return true;
             }
 
@@ -242,12 +212,9 @@ namespace Sudoku.Controls
             return _maps.Where(predicate).FirstOrDefault();
         }
 
-        public Map Find(string name)
+        public Map FindMap(Guid id)
         {
-            if (name == null)
-                throw new ArgumentNullException();
-
-            return _maps.Where(m => m.Name == name).FirstOrDefault();
+            return _maps.Where(m => m.ID == id).FirstOrDefault();
         }
 
         public void Clear()
@@ -264,6 +231,36 @@ namespace Sudoku.Controls
             g.FillRectangle(_bgHatchBrush, ClientRectangle);
             g.FillRectangle(_bgGradientBrush, ClientRectangle);
             g.FillRectangle(Brushes.White, _mapListRect);
+
+            int nextY = _scroll;
+            for (int i = 0; i < _mapPanels.Count; i++)
+            {
+                var panel = _mapPanels[i];
+
+                if (panel.IsVisible)
+                {
+                    panel.YIndent = nextY;
+                    nextY += _splitterWidth + panel.Height;
+                    if (panel.Bounds.Bottom > _mapListRect.Y
+                        && panel.Bounds.Y < _mapListRect.Bottom)
+                        panel.Draw(g);
+                }
+            }
+
+            if (_mapPanels.Count == 0)
+            {
+                g.DrawString("Вы еще не создали ни одной карты",
+                    Font, _textBrush, _mapListRect, _format);
+            }
+
+            g.FillRectangle(Brushes.White, _topPanelRect);
+            g.DrawRectangle(Pens.Black, _topPanelRect.X, _topPanelRect.Y,
+                _topPanelRect.Width, _topPanelRect.Height);
+
+            g.FillRectangle(Brushes.White, _bottomPanelRect);
+            g.DrawRectangle(Pens.Black, _bottomPanelRect.X, _bottomPanelRect.Y,
+                _bottomPanelRect.Width, _bottomPanelRect.Height);
+
             g.DrawRectangle(Pens.Black, _mapListRect.X, _mapListRect.Y,
                 _mapListRect.Width, _mapListRect.Height);
 
@@ -272,18 +269,6 @@ namespace Sudoku.Controls
             _searchBox.Draw(g);
             _searchBtn.Draw(g);
             _resetSearchBtn.Draw(g);
-
-            int nextY = _scroll;
-            for (int i = 0; i < _mapPanels.Count; i++)
-            {
-                var panel = _mapPanels[i];
-                if (panel.IsVisible)
-                {
-                    panel.YIndent = nextY;
-                    nextY += _splitterWidth + panel.Height;
-                    panel.Draw(g);
-                }
-            }
 
             switch (_borderStyle)
             {
@@ -309,45 +294,55 @@ namespace Sudoku.Controls
             {
                 Width = Width * 6 / 10,
                 Height = Height * 7 / 10,
-                X = (Width - Width * 6 / 10) / 2,
                 Y = Height * 1 / 10
             };
+            _mapListRect.X = (Width - _mapListRect.Width) / 2;
+
+            _topPanelRect = new Rectangle()
+            {
+                Width = _mapListRect.Width * 11 / 10,
+                Height = _mapListRect.Y * 95 / 100,
+            };
+            _topPanelRect.X = (Width - _topPanelRect.Width) / 2;
+            _topPanelRect.Y = _mapListRect.Y - _topPanelRect.Height;
 
             _bottomPanelRect = new Rectangle()
             {
-                Width = _mapListRect.Width * 9 / 10,
-                Height = Height - _mapListRect.Bottom,
-                X = _mapListRect.X + (_mapListRect.Width -
-                    _mapListRect.Width * 9 / 10) / 2,
+                Width = _mapListRect.Width * 11 / 10,
+                Height = (Height - _mapListRect.Bottom) * 95 / 100,
                 Y = _mapListRect.Bottom
             };
+            _bottomPanelRect.X = (Width - _bottomPanelRect.Width) / 2;
 
             _createMapBtn.Height = _bottomPanelRect.Height - 10;
             _createMapBtn.Width = _createMapBtn.Height;
-            _createMapBtn.X = _bottomPanelRect.Right - _createMapBtn.Width;
+            _createMapBtn.X = _bottomPanelRect.Right - _createMapBtn.Width - 10;
             _createMapBtn.Y = _bottomPanelRect.Top + 5;
 
             _importMapBtn.Height = _bottomPanelRect.Height - 10;
             _importMapBtn.Width = _importMapBtn.Height;
-            _importMapBtn.X = _bottomPanelRect.Left;
+            _importMapBtn.X = _bottomPanelRect.Left + 10;
             _importMapBtn.Y = _bottomPanelRect.Top + 5;
 
             _searchBox.Height = _mapListRect.Top - 10;
             _searchBox.Width = _mapListRect.Width * 7 / 10;
             _searchBox.X = _mapListRect.X + (_mapListRect.Width -
                 _mapListRect.Width * 7 / 10) / 2;
-            _searchBox.Y = 5;
+            _searchBox.Y = _topPanelRect.Y
+                + (_topPanelRect.Height - _searchBox.Height) / 2;
 
             _searchBtn.Height = _searchBox.Height;
             _searchBtn.Width = _searchBtn.Height;
             _searchBtn.X = _searchBox.Right + 10;
-            _searchBtn.Y = 5;
+            _searchBtn.Y = _topPanelRect.Y
+                + (_topPanelRect.Height - _searchBtn.Height) / 2;
 
             _resetSearchBtn.Height = _searchBox.Height;
             _resetSearchBtn.Width = _searchBtn.Height;
             _resetSearchBtn.X = _searchBox.Left -
                 _resetSearchBtn.Width - 10;
-            _resetSearchBtn.Y = 5;
+            _resetSearchBtn.Y = _topPanelRect.Y
+                + (_topPanelRect.Height - _resetSearchBtn.Height) / 2;
 
             if (_mapPanels != null)
             {
@@ -362,14 +357,31 @@ namespace Sudoku.Controls
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            foreach(var panel in _mapPanels)
+            if (_mapListRect.Contains(e.Location))
             {
-                panel.DeleteButton.IsSelected =
-                    panel.DeleteButton.IsFocused(e.Location);
-                panel.ViewButton.IsSelected =
-                    panel.ViewButton.IsFocused(e.Location);
-                panel.ExportButton.IsSelected =
-                    panel.ExportButton.IsFocused(e.Location);
+                foreach (var panel in _mapPanels)
+                {
+                    panel.DeleteButton.IsSelected =
+                        panel.DeleteButton.IsFocused(e.Location);
+                    panel.ViewButton.IsSelected =
+                        panel.ViewButton.IsFocused(e.Location);
+                    panel.ExportButton.IsSelected =
+                        panel.ExportButton.IsFocused(e.Location);
+                }
+            }
+
+            else
+            {
+                foreach (var panel in _mapPanels)
+                {
+                    panel.DeleteButton.IsPressed = false;
+                    panel.ViewButton.IsPressed = false;
+                    panel.ExportButton.IsPressed = false;
+
+                    panel.DeleteButton.IsSelected = false;
+                    panel.ViewButton.IsSelected = false;
+                    panel.ExportButton.IsSelected = false;
+                }
             }
 
             _searchBtn.IsSelected = _searchBtn.IsFocused(e.Location);
@@ -383,14 +395,17 @@ namespace Sudoku.Controls
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            foreach (var panel in _mapPanels)
+            if (_mapListRect.Contains(e.Location))
             {
-                panel.DeleteButton.IsPressed =
-                    panel.DeleteButton.IsFocused(e.Location);
-                panel.ViewButton.IsPressed =
-                    panel.ViewButton.IsFocused(e.Location);
-                panel.ExportButton.IsPressed =
-                    panel.ExportButton.IsFocused(e.Location);
+                foreach (var panel in _mapPanels)
+                {
+                    panel.DeleteButton.IsPressed =
+                        panel.DeleteButton.IsFocused(e.Location);
+                    panel.ViewButton.IsPressed =
+                        panel.ViewButton.IsFocused(e.Location);
+                    panel.ExportButton.IsPressed =
+                        panel.ExportButton.IsFocused(e.Location);
+                }
             }
 
             _searchBtn.IsPressed = _searchBtn.IsFocused(e.Location);
@@ -413,23 +428,28 @@ namespace Sudoku.Controls
                     if (panel.ViewButton.IsPressed)
                     {
                         OnViewButtonClick(new MapActionClickArgs(
-                            _maps.Where(m => m.Name == panel.MapName).First()));
+                            _maps.Where(m => m.ID == panel.MapID).First()));
                     }
 
                     if (panel.DeleteButton.IsPressed)
                     {
-                        OnDeleteButtonClick(new MapActionClickArgs(
-                            _maps.Where(m => m.Name == panel.MapName).First()));
+                        if (MessageBox.Show("Удалить карту? " +
+                            "Это действие нельзя будет отменить", "Удаление карты",
+                            MessageBoxButtons.YesNo) == DialogResult.Yes)
+                        {
+                            OnDeleteButtonClick(new MapActionClickArgs(
+                            _maps.Where(m => m.ID == panel.MapID).First()));
 
-                        _mapPanels.RemoveAll(p => p == panel);
-                        _maps.RemoveWhere(m => m.Name == panel.MapName);
-                        i--;
+                            _mapPanels.RemoveAll(p => p == panel);
+                            _maps.RemoveWhere(m => m.ID == panel.MapID);
+                            i--;
+                        }
                     }
 
                     if (panel.ExportButton.IsPressed)
                     {
                         OnExportButtonClick(new MapActionClickArgs(
-                            _maps.Where(m => m.Name == panel.MapName).First()));
+                            _maps.Where(m => m.ID == panel.MapID).First()));
                     }
 
                     panel.ViewButton.IsPressed = false;
@@ -547,6 +567,8 @@ namespace Sudoku.Controls
 
         private class MapInfoPanel
         {
+            private const int _idLblHeight = 20;
+            private readonly Guid _id;
             private Rectangle _container;
             private Rectangle _bounds;
             private SudokuControlModel _viewBtn;
@@ -555,6 +577,7 @@ namespace Sudoku.Controls
             private Rectangle _nameLlbBounds;
             private Rectangle _sizeLlbBounds;
             private Rectangle _typeLlbBounds;
+            private Rectangle _idLblBounds;
             private Pen _pen;
             private Pen _selectionPen;
             private Brush _selectionBrush;
@@ -562,12 +585,15 @@ namespace Sudoku.Controls
             private HatchBrush _bgHatchBrush;
             private LinearGradientBrush _bgGradientBrush;
             private Font _font;
+            private Font _idFont;
             private StringFormat _format;
+            private StringFormat _idFormat;
             private int _yIndent;
             private int _height;
 
-            public MapInfoPanel(Rectangle container)
+            public MapInfoPanel(Rectangle container, Guid mapID)
             {
+                _id = mapID;
                 _container = container;
                 _height = 100;
 
@@ -592,11 +618,18 @@ namespace Sudoku.Controls
                 _bgHatchBrush = new HatchBrush(HatchStyle.Cross, 
                     Color.White, Color.FromArgb(200, 230, 230, 250));
 
-                _font = new Font("Times New Roman", 26);
+                _font = new Font("Times New Roman", 36);
+                _idFont = new Font("Times New Roman", 14);
 
                 _format = new StringFormat()
                 {
                     Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center,
+                };
+
+                _idFormat = new StringFormat()
+                {
+                    Alignment = StringAlignment.Near,
                     LineAlignment = StringAlignment.Center,
                 };
 
@@ -629,11 +662,15 @@ namespace Sudoku.Controls
                 }
             }
 
+            public Rectangle Bounds { get { return _bounds; } }
+
             public SudokuControlModel ViewButton => _viewBtn;
 
             public SudokuControlModel ExportButton => _exportBtn;
 
             public SudokuControlModel DeleteButton => _delBtn;
+
+            public Guid MapID => _id;
 
             public bool IsVisible { get; set; }
 
@@ -658,9 +695,9 @@ namespace Sudoku.Controls
                     return;
 
                 string trimmingName = MapName;
-                if (trimmingName.Length > 8)
+                if (trimmingName.Length > 11)
                 {
-                    trimmingName = trimmingName.Substring(0, 8) + "...";
+                    trimmingName = trimmingName.Substring(0, 11) + "...";
                 }
 
                 g.DrawString(trimmingName, _font, 
@@ -669,6 +706,8 @@ namespace Sudoku.Controls
                     _font, _textBrush, _sizeLlbBounds, _format);
                 g.DrawString($"{MapType}", _font, 
                     _textBrush, _typeLlbBounds, _format);
+                g.DrawString($"{_id}", _idFont,
+                    _textBrush, _idLblBounds, _idFormat);
             }
 
             public bool IsFocused(Point point)
@@ -692,6 +731,14 @@ namespace Sudoku.Controls
                     Height = _height
                 };
 
+                _idLblBounds = new Rectangle()
+                {
+                    X = _bounds.X,
+                    Y = _bounds.Bottom - _idLblHeight,
+                    Height = _idLblHeight,
+                    Width = _bounds.Width
+                };
+
                 _viewBtn.Height = _bounds.Height - 10;
                 _viewBtn.Width = _viewBtn.Height;
                 _viewBtn.X = _bounds.Right - 5 - _viewBtn.Height;
@@ -709,10 +756,10 @@ namespace Sudoku.Controls
 
                 _nameLlbBounds = new Rectangle()
                 {
-                    X = _bounds.X + 3,
+                    X = _bounds.X,
                     Y = _bounds.Y,
                     Width = _bounds.Width * 3 / 10,
-                    Height = _bounds.Height
+                    Height = _bounds.Height - _idLblHeight
                 };
 
                 _sizeLlbBounds = new Rectangle()

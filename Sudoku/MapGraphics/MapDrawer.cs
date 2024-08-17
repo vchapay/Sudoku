@@ -27,6 +27,7 @@ namespace Sudoku.MapGraphics
         private Size _mapSize;
         private Font _font;
         private Font _sumAreaFont;
+        private Font _notesFont;
         private readonly Brush _openedValuesBrush;
         private readonly Brush _enteredValuesBrush;
         private readonly Brush _unavailableValuesBrush;
@@ -38,6 +39,7 @@ namespace Sudoku.MapGraphics
         private readonly Brush _rowsColsSelectionBrush;
         private readonly Brush _sumAreaSelectionBrush;
         private readonly Brush _conflictCellBrush;
+        private readonly Brush _notesBrush;
         private readonly HatchBrush _bgHatchBrush;
         private LinearGradientBrush _bgGradientBrush;
         private RectangleF _canvasRect;
@@ -50,7 +52,7 @@ namespace Sudoku.MapGraphics
         private readonly Pen _unavailableIconPen;
         private readonly Pen _conflictCellPen;
         private readonly Pen _unblockedCellOutlinePen;
-        private readonly StringFormat _mainCellsTextFormat;
+        private readonly StringFormat _textFormat;
         private readonly List<int> _selectedContent = new List<int>();
         private readonly List<int> _selectedGroups = new List<int>();
 
@@ -70,12 +72,13 @@ namespace Sudoku.MapGraphics
             };
             _unavailableIconPen = new Pen(Color.LightGray);
             _font = new Font("Times New Roman", _defaultMainCellFontSize);
-            _mainCellsTextFormat = new StringFormat
+            _sumAreaFont = new Font("Times New Roman", _defaultSumAreaTextSize);
+            _notesFont = new Font("Times New Roman", 8);
+            _textFormat = new StringFormat
             {
                 Alignment = StringAlignment.Center,
                 LineAlignment = StringAlignment.Center,
             };
-            _sumAreaFont = new Font("Times New Roman", _defaultSumAreaTextSize);
             _openedValuesBrush = new SolidBrush(Color.Black);
             _enteredValuesBrush = new SolidBrush(Color.DarkBlue);
             _unavailableValuesBrush = new SolidBrush(Color.FromArgb(100, 100, 100, 100));
@@ -110,6 +113,8 @@ namespace Sudoku.MapGraphics
                 Width = 3,
                 DashStyle = DashStyle.Dash
             };
+
+            _notesBrush = new SolidBrush(Color.DarkGray);
             _rowsColsSelectionBrush = new SolidBrush(Color.FromArgb(20, 0, 190, 220));
             _sumAreaSelectionBrush = new SolidBrush(Color.FromArgb(30, 0, 250, 50));
             _sameContentCellsSelectionBrush = new SolidBrush(Color.FromArgb(50, 0, 240, 200));
@@ -159,7 +164,7 @@ namespace Sudoku.MapGraphics
             if (map == null || g == null)
                 throw new ArgumentNullException();
 
-            _mapSize = new Size(map.Width, map.Height);
+            _mapSize = new Size(map.ColumnsCount, map.RowsCount);
             g.Clear(Color.White);
             ConstructBase(surface.Size, _mapSize);
             DrawBackGround(g);
@@ -169,6 +174,34 @@ namespace Sudoku.MapGraphics
             DrawGroups(g, cells.ToList(), groups.ToList());
             DrawSelections(g, map, true, true, true);
             DrawCellsContent(g, map.Cells);
+            DrawNotes(g, map.Cells);
+        }
+
+        private void DrawNotes(Graphics g, IReadOnlyCollection<CellInterface> cells)
+        {
+            foreach (var cell in cells)
+            {
+                if (cell.IsEntered || !cell.IsAvailable)
+                    continue;
+
+                foreach (int note in cell.Notes)
+                {
+                    // для 20 возможных значений заметки
+                    // нужен квадрат 4x5
+                    int row = (note - 1) / 4;
+                    int column = (note - 1) - 4 * row;
+                    float noteCellWidth = _cellSize / 4;
+                    float noteCellHeight = _cellSize / 5;
+                    float cellX = cell.Column * _cellSize + _imagePosition.X;
+                    float cellY = cell.Row * _cellSize + _imagePosition.Y;
+                    float x = cellX + noteCellWidth * column;
+                    float y = cellY + noteCellHeight * row;
+                    RectangleF noteRect = 
+                        new RectangleF(x, y, noteCellWidth, noteCellHeight);
+                    g.DrawString($"{note}", _notesFont, _notesBrush,
+                        noteRect, _textFormat);
+                }
+            }
         }
 
         /// <summary>
@@ -329,13 +362,13 @@ namespace Sudoku.MapGraphics
                 if (!cell.IsAvailable && cell.Correct != 0)
                 {
                     g.DrawString(cell.Correct.ToString(), _font, _openedValuesBrush,
-                        rect, _mainCellsTextFormat);
+                        rect, _textFormat);
                 }
 
                 if (cell.IsAvailable && cell.Correct != 0)
                 {
                     g.DrawString(cell.Correct.ToString(), _font, _unavailableValuesBrush,
-                        rect, _mainCellsTextFormat);
+                        rect, _textFormat);
                 }
 
                 if (!cell.IsAvailable && cell.Correct == 0)
@@ -360,7 +393,7 @@ namespace Sudoku.MapGraphics
                 if (!cell.IsAvailable && cell.Correct != 0)
                 {
                     g.DrawString(cell.Correct.ToString(), _font, _openedValuesBrush,
-                        rect, _mainCellsTextFormat);
+                        rect, _textFormat);
                 }
 
                 if (!cell.IsAvailable && cell.Correct == 0)
@@ -381,7 +414,7 @@ namespace Sudoku.MapGraphics
                         brush = _incorrectValuesTextBrush;
 
                     g.DrawString(cell.Entered.ToString(), _font, brush,
-                        rect, _mainCellsTextFormat);
+                        rect, _textFormat);
                 }
             }
         }
@@ -453,64 +486,12 @@ namespace Sudoku.MapGraphics
 
                     g.FillEllipse(Brushes.White, backRect);
                     g.DrawString(gr.Sum.ToString(), _sumAreaFont, _openedValuesBrush,
-                        textRect, _mainCellsTextFormat);
+                        textRect, _textFormat);
                 }
 
                 drawnGroups.Add(gr.ID);
             }
         }
-
-        /*private void DrawGroups(Graphics g, 
-            IReadOnlyCollection<GroupInfo> areas, Func<int, List<CellInfo>> areaCells)
-        {
-            foreach (var gID in areas)
-            {
-                bool isSumArea = gID.Type == Map.GroupType.Sum;
-
-                Pen pen = _defaultAreaPen;
-
-                var cells = areaCells(gID.ID);
-                var outline = ConstructOutline(isSumArea, cells);
-                if (outline.Count == 0)
-                    continue;
-
-                if (isSumArea)
-                    if (gID.IsSelected)
-                        pen = _selectedSumAreaPen;
-                    else
-                        pen = _sumAreaPen;
-
-                foreach (var pts in outline)
-                {
-                    g.DrawLines(pen, pts.ToArray());
-                }
-
-                if (isSumArea)
-                {
-                    PointF first = outline.First().First();
-
-                    RectangleF textRect = new RectangleF
-                    {
-                        X = first.X - 5,
-                        Y = first.Y - 3,
-                        ColumnsCount = 22,
-                        RowsCount = 15
-                    };
-
-                    RectangleF backRect = new RectangleF
-                    {
-                        X = first.X - 3,
-                        Y = first.Y - 3,
-                        ColumnsCount = 20,
-                        RowsCount = 15
-                    };
-
-                    g.FillEllipse(Brushes.White, backRect);
-                    g.DrawString(gID.Sum.ToString(), _sumAreaFont, _openedValuesBrush,
-                        textRect, _mainCellsTextFormat);
-                }
-            }
-        }*/
 
         private List<List<PointF>> ConstructOutline(bool isSumArea, List<CellInfo> cells)
         {
@@ -758,48 +739,6 @@ namespace Sudoku.MapGraphics
                 }
             }
         }
-
-        /*private void DrawSelections(Graphics g, IEnumerable<CellInfo> cells,
-            bool selectSameContent, bool selectGroups)
-        {
-            var selected = cells.Where(c => c.IsSelected);
-            _selectedContent.Clear();
-            _selectedGroups.Clear();
-            if (selected.Count() > 0)
-            {
-                foreach (var cell in selected)
-                {
-                    RectangleF cellRect = ConstructCellRect(cell);
-                    g.FillRectangle(_cellSelectionBrush, cellRect);
-                    g.DrawRectangle(_cellSelectionPen, cellRect.X, cellRect.Y,
-                        cellRect.ColumnsCount, cellRect.RowsCount);
-
-                    if (selectSameContent)
-                    {
-                        int content = cell.Correct;
-                        if (!_selectedContent.Contains(content))
-                        {
-                            DrawSelectionSameContent(g, content, cells);
-                            _selectedContent.Add(content);
-                        }
-                    }
-
-                    if (selectGroups)
-                    {
-                        foreach (var gID in cell.Groups)
-                        {
-                            if (_selectedGroups.Contains(gID))
-                                continue;
-
-                            DrawGroupSelection(g, areaCells.Invoke(gID),
-                                gID.Type == GroupType.Sum);
-
-                            _selectedGroups.Add(gID);
-                        }
-                    }
-                }
-            }
-        }*/
 
         private void DrawSelections(Graphics g, MapInterface map, 
             bool selectRowsAndCols, bool selectSameContent, bool selectAreas)

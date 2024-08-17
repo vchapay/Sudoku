@@ -158,5 +158,14 @@
   <ItemGroup>
     <None Include="Properties\Иконка проигрывания.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка копирования.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка сворачивания.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка раворачивания.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

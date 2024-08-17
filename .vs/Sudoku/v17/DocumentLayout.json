@@ -3,16 +3,24 @@
   "WorkspaceRootPath": "D:\\VisualStudioProjects\\Sudoku\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|d:\\visualstudioprojects\\sudoku\\sudoku\\maplogic\\map.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\maplogic\\map.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|d:\\visualstudioprojects\\sudoku\\sudoku\\maplogic\\cellinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\maplogic\\cellinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|D:\\VisualStudioProjects\\Sudoku\\sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|d:\\visualstudioprojects\\sudoku\\sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|D:\\VisualStudioProjects\\Sudoku\\sudoku\\controls\\sudokuplayerdisplay.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\controls\\sudokuplayerdisplay.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|d:\\visualstudioprojects\\sudoku\\sudoku\\controls\\sudokueditor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\controls\\sudokueditor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|D:\\VisualStudioProjects\\Sudoku\\sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{98DD3E00-CA1E-4F6B-B4EA-3BCDB146F90B}|Sudoku\\Sudoku.csproj|solutionrelative:sudoku\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,33 +34,59 @@
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "SudokuEditor.cs",
-              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Controls\\SudokuEditor.cs",
-              "RelativeDocumentMoniker": "Sudoku\\Controls\\SudokuEditor.cs",
-              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Controls\\SudokuEditor.cs",
-              "RelativeToolTip": "Sudoku\\Controls\\SudokuEditor.cs",
-              "ViewState": "AQIAAH4GAAAAAAAAAAAQwI8GAAAeAAAA",
+              "DocumentIndex": 1,
+              "Title": "CellInfo.cs",
+              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\MapLogic\\CellInfo.cs",
+              "RelativeDocumentMoniker": "Sudoku\\MapLogic\\CellInfo.cs",
+              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\MapLogic\\CellInfo.cs",
+              "RelativeToolTip": "Sudoku\\MapLogic\\CellInfo.cs",
+              "ViewState": "AQIAAAUAAAAAAAAAAAAxwAsAAAATAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-13T16:32:03.495Z",
+              "WhenOpened": "2024-08-17T07:43:58.79Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Map.cs",
+              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\MapLogic\\Map.cs",
+              "RelativeDocumentMoniker": "Sudoku\\MapLogic\\Map.cs",
+              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\MapLogic\\Map.cs",
+              "RelativeToolTip": "Sudoku\\MapLogic\\Map.cs",
+              "ViewState": "AQIAAPMDAAAAAAAAAAAWwAkEAAAjAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-17T07:42:26.244Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "SudokuPlayerDisplay.cs",
+              "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Controls\\SudokuPlayerDisplay.cs",
+              "RelativeDocumentMoniker": "Sudoku\\Controls\\SudokuPlayerDisplay.cs",
+              "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Controls\\SudokuPlayerDisplay.cs",
+              "RelativeToolTip": "Sudoku\\Controls\\SudokuPlayerDisplay.cs",
+              "ViewState": "AQIAAKIAAAAAAAAAAAAiwNYAAAAYAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-16T07:02:04.65Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "Form1.cs",
               "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Form1.cs",
               "RelativeDocumentMoniker": "Sudoku\\Form1.cs",
               "ToolTip": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Form1.cs",
               "RelativeToolTip": "Sudoku\\Form1.cs",
-              "ViewState": "AQIAAH4AAAAAAAAAAAAmwJAAAAAsAAAA",
+              "ViewState": "AQIAAEMAAAAAAAAAAAAqwFMAAAAZAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-08-10T08:20:41.934Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "Form1.cs [\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440]",
               "DocumentMoniker": "D:\\VisualStudioProjects\\Sudoku\\Sudoku\\Form1.cs",
               "RelativeDocumentMoniker": "Sudoku\\Form1.cs",

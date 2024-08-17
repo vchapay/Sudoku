@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
+    [Serializable]
     /// <summary>
     /// Предоставляет оболочку над закрытым типом Cell для использования в игровой сессии
     /// </summary>
@@ -47,7 +49,7 @@ namespace Sudoku.MapLogic
         {
             get { return _entered; }
             set {
-                if (value > -1 && value < 10)
+                if (value > -1 && value < 21)
                     _entered = value; 
             }
         }
@@ -109,20 +111,18 @@ namespace Sudoku.MapLogic
         /// Записывает число в заметки, если такого еще нет
         /// </summary>
         /// <param name="note"></param>
-        public void WriteNote(int note)
+        public bool WriteNote(int note)
         {
-            if (note > 0 && note < 10)
-                _notes.Add(note);
+            return _notes.Add(note);
         }
 
         /// <summary>
         /// Удаляет число из заметок, если такое число есть
         /// </summary>
         /// <param name="note"></param>
-        public void RemoveNote(int note)
+        public bool RemoveNote(int note)
         {
-            if (note > 0 && note < 10)
-                _notes.Remove(note);
+            return _notes.Remove(note);
         }
 
         /// <summary>

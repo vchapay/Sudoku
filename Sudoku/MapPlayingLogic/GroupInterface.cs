@@ -1,5 +1,8 @@
-﻿namespace Sudoku.MapLogic
+﻿using System;
+
+namespace Sudoku.MapLogic
 {
+    [Serializable]
     internal sealed class GroupInterface
     {
         private int _id;

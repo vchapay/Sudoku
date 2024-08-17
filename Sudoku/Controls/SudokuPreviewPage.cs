@@ -18,6 +18,13 @@ namespace Sudoku.Controls
         private SudokuControlModel _descriptionBox;
         private SudokuControlModel _playBtn;
         private SudokuControlModel _editBtn;
+        private SudokuControlModel _copyBtn;
+        private Rectangle _bottomPanelRect;
+        private Rectangle _idRect;
+        private Rectangle _sizeRect;
+        private Font _font;
+        private Brush _textBrush;
+        private StringFormat _textFormat;
         private List<SudokuControlModel> _boxes;
         private Map _map;
 
@@ -39,7 +46,8 @@ namespace Sudoku.Controls
             _nameBox = new SudokuControlModel()
             {
                 Text = "map1",
-                Font = new Font("Times New Roman", 36)
+                Font = new Font("Times New Roman", 36),
+                TextTrimming = 30
             };
 
             _descriptionBox = new SudokuControlModel()
@@ -59,10 +67,23 @@ namespace Sudoku.Controls
                 Image = Properties.Resources.ChangingIcon
             };
 
+            _copyBtn = new SudokuControlModel()
+            {
+                Image = Properties.Resources.CopyingIcon
+            };
+
             _boxes = new List<SudokuControlModel>()
             {
                 _nameBox,
                 _descriptionBox,
+            };
+
+            _font = new Font("Times New Roman", 18);
+            _textBrush = Brushes.Black;
+            _textFormat = new StringFormat()
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
             };
 
             Width = 500;
@@ -103,6 +124,21 @@ namespace Sudoku.Controls
         /// </summary>
         public event MapActionClickHandler PlayingClicked;
 
+        /// <summary>
+        /// Происходит при изменении названия карты.
+        /// </summary>
+        public event MapActionClickHandler NameChanged;
+
+        /// <summary>
+        /// Происходит при изменении описания карты.
+        /// </summary>
+        public event MapActionClickHandler DescriptionChanged;
+
+        /// <summary>
+        /// Происходит при нажатии на кнопку "копировать".
+        /// </summary>
+        public event MapActionClickHandler CopyingClicked;
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -114,13 +150,19 @@ namespace Sudoku.Controls
             _descriptionBox.Draw(g);
             _playBtn.Draw(g);
             _editBtn.Draw(g);
+            _copyBtn.Draw(g);
+
+            g.DrawString($"ID: {_map.ID}", _font, _textBrush, _idRect, _textFormat);
+
+            g.DrawString($"Размер: {_map.ColumnsCount}x{_map.RowsCount}",
+                _font, _textBrush, _sizeRect, _textFormat);
         }
 
         protected override void OnResize(EventArgs e)
         {
             _nameBox.Width = Width * 5 / 10;
             _nameBox.Height = 80;
-            _nameBox.Y = 5;
+            _nameBox.Y = Height * 15 / 100;
             _nameBox.X = (Width - _nameBox.Width) / 2;
 
             _descriptionBox.Width = Width * 7 / 10;
@@ -128,16 +170,36 @@ namespace Sudoku.Controls
             _descriptionBox.Y = _nameBox.Bottom + 5;
             _descriptionBox.X = (Width - _descriptionBox.Width) / 2;
 
+            _bottomPanelRect.Width = Width * 5 / 10;
+            _bottomPanelRect.Height = Height / 14;
+            _bottomPanelRect.X = (Width - _bottomPanelRect.Width) / 2;
+            _bottomPanelRect.Y = (Height - _bottomPanelRect.Height) * 98 / 100;
+
+            _idRect.Width = _bottomPanelRect.Width * 4 / 10;
+            _idRect.Height = _bottomPanelRect.Height;
+            _idRect.X = _bottomPanelRect.X;
+            _idRect.Y = _bottomPanelRect.Y;
+
+            _sizeRect.Width = _bottomPanelRect.Width * 4 / 10;
+            _sizeRect.Height = _bottomPanelRect.Height;
+            _sizeRect.X = _bottomPanelRect.Right - _sizeRect.Width;
+            _sizeRect.Y = _bottomPanelRect.Y;
+
             _playBtn.Width = _descriptionBox.Width / 7;
             _playBtn.Height = _playBtn.Width;
             _playBtn.X = _descriptionBox.X + _descriptionBox.Width / 4;
-            _playBtn.Y = _descriptionBox.Bottom + _playBtn.Width;
+            _playBtn.Y = _descriptionBox.Bottom + 10;
 
             _editBtn.Width = _descriptionBox.Width / 7;
             _editBtn.Height = _playBtn.Width;
             _editBtn.X = _descriptionBox.Right - 
                 _descriptionBox.Width / 4 - _editBtn.Width;
-            _editBtn.Y = _descriptionBox.Bottom + _editBtn.Width;
+            _editBtn.Y = _descriptionBox.Bottom + 10;
+
+            _copyBtn.Width = Width * 5 / 100;
+            _copyBtn.Height = _copyBtn.Width;
+            _copyBtn.X = Width - _copyBtn.Width - 10;
+            _copyBtn.Y = Height * 3 / 10;
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -148,6 +210,7 @@ namespace Sudoku.Controls
                 _descriptionBox.IsPressed = _descriptionBox.IsFocused(e.Location);
                 _editBtn.IsPressed = _editBtn.IsFocused(e.Location);
                 _playBtn.IsPressed = _playBtn.IsFocused(e.Location);
+                _copyBtn.IsPressed = _copyBtn.IsFocused(e.Location);
             }
 
             Invalidate();
@@ -159,6 +222,7 @@ namespace Sudoku.Controls
             _descriptionBox.IsSelected = _descriptionBox.IsFocused(e.Location);
             _editBtn.IsSelected = _editBtn.IsFocused(e.Location);
             _playBtn.IsSelected = _playBtn.IsFocused(e.Location);
+            _copyBtn.IsSelected = _copyBtn.IsFocused(e.Location);
             Invalidate();
         }
 
@@ -174,8 +238,14 @@ namespace Sudoku.Controls
                 OnPlayClick(new MapActionClickArgs(Map));
             }
 
+            if (_copyBtn.IsPressed)
+            {
+                OnCopyClick(new MapActionClickArgs(Map));
+            }
+
             _editBtn.IsPressed = false;
             _playBtn.IsPressed = false;
+            _copyBtn.IsPressed = false;
             Invalidate();
         }
 
@@ -205,10 +275,16 @@ namespace Sudoku.Controls
                     }
 
                     if (box == _nameBox)
+                    {
                         _map.Name = _nameBox.Text;
+                        OnNameChanged(new MapActionClickArgs(_map));
+                    }
 
                     else
+                    {
                         _map.Description = _descriptionBox.Text;
+                        OnDescriptionChanged(new MapActionClickArgs(_map));
+                    }
                 }
             }
         }
@@ -221,6 +297,21 @@ namespace Sudoku.Controls
         private void OnPlayClick(MapActionClickArgs e)
         {
             PlayingClicked?.Invoke(this, e);
+        }
+
+        private void OnNameChanged(MapActionClickArgs e)
+        {
+            NameChanged?.Invoke(this, e);
+        }
+
+        private void OnDescriptionChanged(MapActionClickArgs e)
+        {
+            DescriptionChanged?.Invoke(this, e);
+        }
+
+        private void OnCopyClick(MapActionClickArgs e)
+        {
+            CopyingClicked?.Invoke(this, e);
         }
     }
 }

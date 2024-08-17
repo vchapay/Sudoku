@@ -1,12 +1,14 @@
 ﻿using Sudoku.Controls;
 using Sudoku.MapLogic;
+using Sudoku.MapPlayingLogic;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using System.Xml.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Sudoku
 {
@@ -21,6 +23,7 @@ namespace Sudoku
         private readonly SudokuCreatingPage _mapCreatingPage;
         private readonly SudokuPreviewPage _mapPreviewPage;
         private Stack<Control> _prevControls;
+        private MapInterface _lastGame;
 
         public Form1()
         {
@@ -35,34 +38,105 @@ namespace Sudoku
             _mapPreviewPage = new SudokuPreviewPage();
             _scenesContainer.Control = _menu;
 
-            _menu.EditorButtonClicked += GoToMapsList;
-            _mapListPage.CreateMapButtonClicked += OpenCreatingPage;
-            _mapListPage.ViewMapButtonClicked += OpenPreviewPage;
-            _mapListPage.ExportMapButtonClicked += ExportMap;
-            _mapListPage.DeleteMapButtonClicked += DeleteMap;
-            _mapListPage.ImportMapButtonClicked += ImportMap;
-            _mapCreatingPage.CreateMapClicked += CreateMap;
-            _mapPreviewPage.EditingClicked += OpenEditorPage;
-            _mapEditor.SaveButtonClicked += SaveMap;
+            InitializeHandlers();
 
             /*string name = sudokuMaker1.Map.MapName;
             sudokuMaker1.SavePath = $"D:\\По шарпу\\Судоку\\Папка для карт\\{name}.sdkm";*/
         }
 
+        private void InitializeHandlers()
+        {
+            _menu.EditorButtonClicked += GoToMapsList;
+            _menu.ContinueButtonClicked += ContinueGame;
+
+            _mapListPage.CreateMapButtonClicked += OpenCreatingPage;
+            _mapListPage.ViewMapButtonClicked += OpenPreviewPage;
+            _mapListPage.ExportMapButtonClicked += ExportMap;
+            _mapListPage.DeleteMapButtonClicked += WhenDeleteButtonClicked;
+            _mapListPage.ImportMapButtonClicked += ImportMap;
+
+            _mapCreatingPage.CreateMapClicked += CreateMap;
+
+            _mapPreviewPage.EditingClicked += OpenEditorPage;
+            _mapPreviewPage.CopyingClicked += WhenCopyButtonClicked;
+            _mapPreviewPage.PlayingClicked += OpenPlayingPage;
+
+            _mapEditor.SaveButtonClicked += SaveMap;
+            _mapEditor.PlayButtonClicked += OpenPlayingPage;
+        }
+
+        private void ContinueGame(object sender, EventArgs e)
+        {
+            _prevControls.Push(_menu);
+            _scenesContainer.Control = _mapPlayer;
+            _mapPlayer.Map = _lastGame;
+        }
+
+        private void OpenPlayingPage(object sender, MapActionClickArgs e)
+        {
+            if (e.Map.ConflictsCount > 0)
+            {
+                MessageBox.Show("Чтобы играть в карту, " +
+                    "необходимо, чтобы на ней не было конфликтных ячеек");
+                return;
+            }
+
+            _prevControls.Push((Control)sender);
+            _scenesContainer.Control = _mapPlayer;
+            _mapPlayer.Map = e.Map.GetInterface();
+        }
+
+        private void WhenCopyButtonClicked(object sender, MapActionClickArgs e)
+        {
+            if (MessageBox.Show("Скопировать карту?", "Копирование карты",
+                MessageBoxButtons.YesNo) != DialogResult.Yes)
+            {
+                return;
+            }
+
+            Map copy = e.Map.Clone();
+
+            string adding;
+            string name;
+            var usedNames = _mapListPage.Maps.Select(m => m.Name);
+            for (int i = 1; i < int.MaxValue; i++)
+            {
+                adding = $"_copy{i}";
+                name = e.Map.Name + adding;
+                if (!usedNames.Contains(name))
+                {
+                    copy.Name = name;
+                    break;
+                }
+            }
+
+            _mapPreviewPage.Map = copy;
+
+            string filePath = $"{_mapsFolder}\\{copy.ID}_{copy.Name}{_extension}";
+            SerializeMap(copy, filePath);
+        }
+
         private void SaveMap(object sender, MapActionClickArgs e)
         {
-            string filePath = $"{_mapsFolder}\\{e.Map.Name}{_extension}";
-            using (Stream stream = File.OpenWrite(filePath))
-            {
-                DataContractSerializer serializer =
-                    new DataContractSerializer(new Map().GetType());
+            Map map = e.Map;
+            string filePath = $"{_mapsFolder}\\{map.ID}_{map.Name}{_extension}";
 
-                serializer.WriteObject(stream, e.Map);
+            DeleteMap(map);
+
+            try
+            {
+                SerializeMap(map, filePath);
+            }
+
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message);
             }
         }
 
         private void OpenEditorPage(object sender, MapActionClickArgs e)
         {
+            _prevControls.Push(_mapPreviewPage);
             OpenEditor(e.Map);
         }
 
@@ -74,21 +148,20 @@ namespace Sudoku
                 Description = e.Description,
             };
 
-            string filePath = $"{_mapsFolder}\\{map.Name}{_extension}";
-            using (Stream stream = File.OpenWrite(filePath))
-            {
-                DataContractSerializer serializer =
-                    new DataContractSerializer(new Map().GetType());
-
-                serializer.WriteObject(stream, map);
-                _mapListPage.AddMap(map);
-
-                OpenEditor(map);
-            }
+            string filePath = $"{_mapsFolder}\\{map.ID}_{map.Name}{_extension}";
+            SerializeMap(map, filePath);
+            _mapListPage.AddMap(map);
+            OpenEditor(map);
         }
 
         private void OpenEditor(Map map)
         {
+            if (_scenesContainer.Control == _mapPreviewPage)
+            {
+                SaveMap(_mapPreviewPage,
+                    new MapActionClickArgs(_mapPreviewPage.Map));
+            }
+
             _scenesContainer.Control = _mapEditor;
             _mapEditor.Map = map;
         }
@@ -96,21 +169,42 @@ namespace Sudoku
         private void ImportMap(object sender, EventArgs e)
         {
             OpenFileDialog dialog = new OpenFileDialog();
+            dialog.DefaultExt = _extension;
+            dialog.AddExtension = true;
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    string filePath = $"{_mapsFolder}\\{dialog.FileName}";
-                    using (Stream stream = File.OpenRead(filePath))
+                    Map map = DeserializeMap(dialog.FileName);
+                    _mapListPage.AddMap(map);
+                    OpenPreviewPage(_mapListPage,
+                        new MapActionClickArgs(map));
+                }
+
+                catch (Exception exc)
+                {
+                    MessageBox.Show(exc.Message);
+                }
+            }
+        }
+
+        private void WhenDeleteButtonClicked(object sender, MapActionClickArgs e)
+        {
+            DeleteMap(e.Map);
+        }
+
+        private void DeleteMap(Map map)
+        {
+            DirectoryInfo directory = new DirectoryInfo(_mapsFolder);
+            var files = directory.EnumerateFiles($"*{_extension}");
+            foreach (var file in files)
+            {
+                try
+                {
+                    Map m = DeserializeMap(file.FullName);
+                    if (m.ID == map.ID)
                     {
-                        DataContractSerializer serializer =
-                            new DataContractSerializer(new Map().GetType());
-
-                        Map map = (Map)serializer.ReadObject(stream);
-                        _mapListPage.AddMap(map);
-
-                        OpenPreviewPage(_mapListPage,
-                            new MapActionClickArgs(map));
+                        File.Delete(file.FullName);
                     }
                 }
 
@@ -121,32 +215,14 @@ namespace Sudoku
             }
         }
 
-        private void DeleteMap(object sender, MapActionClickArgs e)
-        {
-            DirectoryInfo directory = new DirectoryInfo(_mapsFolder);
-            var files = directory.EnumerateFiles();
-            foreach (var file in files)
-            {
-                if (file.Name == e.Map.Name)
-                {
-                    File.Delete(_mapsFolder + "\\" + file.Name);
-                }
-            }
-        }
-
         private void ExportMap(object sender, MapActionClickArgs e)
         {
             SaveFileDialog dialog = new SaveFileDialog();
+            dialog.DefaultExt = _extension;
+            dialog.AddExtension = true;
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                using (Stream stream = File.OpenWrite(_mapsFolder + 
-                    $"\\{dialog.FileName}"))
-                {
-                    DataContractSerializer serializer =
-                        new DataContractSerializer(e.Map.GetType());
-
-                    serializer.WriteObject(stream, e.Map);
-                }
+                SerializeMap(e.Map, dialog.FileName);
             }
         }
 
@@ -161,48 +237,83 @@ namespace Sudoku
         {
             _prevControls.Push(_mapListPage);
             _scenesContainer.Control = _mapCreatingPage;
-            _mapCreatingPage.UsedNames = _mapListPage.Maps.Select(m => m.Name).ToArray();
+
+            var usedNames = _mapListPage.Maps.Select(m => m.Name).ToArray();
+            string name;
+            for (int i = 1; i < int.MaxValue; i++)
+            {
+                name = $"map{i}";
+
+                if (!usedNames.Contains(name))
+                {
+                    _mapCreatingPage.MapName = name;
+                    break;
+                }
+            }
         }
 
         private void GoToMapsList(object sender, EventArgs e)
         {
+            UpdateMapsList();
+
             _prevControls.Push(_menu);
             _scenesContainer.Control = _mapListPage;
             _scenesContainer.IsBackButtonVisible = true;
+            _scenesContainer.Invalidate();
+        }
 
+        private void UpdateMapsList()
+        {
             DirectoryInfo directory = new DirectoryInfo(_mapsFolder);
             _mapListPage.Clear();
-            var files = directory.EnumerateFiles();
+            var files = directory.EnumerateFiles($"*{_extension}");
             foreach (var file in files)
             {
-                if (file.Extension == _extension)
+                try
                 {
-                    using(Stream stream = File.OpenRead(file.FullName))
-                    {
-                        DataContractSerializer serializer = 
-                            new DataContractSerializer(new Map().GetType());
+                    Map map = DeserializeMap(file.FullName);
+                    _mapListPage.AddMap(map);
+                }
 
-                        Map map = (Map)serializer.ReadObject(stream);
-                        _mapListPage.AddMap(map);
-                    }
+                catch (Exception exc)
+                {
+                    MessageBox.Show(exc.Message);
                 }
             }
         }
 
         private void BackScene(object sender, EventArgs e)
         {
-            Control prev = _prevControls.Pop();
-            if (_prevControls.Count == 0)
+            if (_scenesContainer.Control == _mapPreviewPage)
             {
-                _scenesContainer.IsBackButtonVisible = false;
+                _mapPreviewPage.Map.ClearSelection();
+                SaveMap(_mapPreviewPage,
+                    new MapActionClickArgs(_mapPreviewPage.Map));
             }
 
             if (_scenesContainer.Control == _mapEditor)
             {
                 if (!_mapEditor.IsMapSaved)
                 {
-
+                    if (MessageBox.Show("Некоторые изменения не были сохранены. " +
+                        "Все равно выйти?", "Изменения не были сохранены",
+                        MessageBoxButtons.YesNo) != DialogResult.Yes)
+                    {
+                        return;
+                    }
                 }
+            }
+
+            Control prev = _prevControls.Pop();
+
+            if (prev == _mapListPage)
+            {
+                UpdateMapsList();
+            }
+
+            if (_prevControls.Count == 0)
+            {
+                _scenesContainer.IsBackButtonVisible = false;
             }
 
             _scenesContainer.Control = prev;
@@ -210,7 +321,59 @@ namespace Sudoku
 
         private void CloseForm(object sender, EventArgs e)
         {
+            if (_scenesContainer.Control == _mapEditor)
+            {
+                if (!_mapEditor.IsMapSaved)
+                {
+                    if (MessageBox.Show("Некоторые изменения не были сохранены. " +
+                        "Все равно выйти?", "Изменения не были сохранены",
+                        MessageBoxButtons.YesNo) != DialogResult.Yes)
+                    {
+                        return;
+                    }
+                }
+            }
+
             Close();
+        }
+
+        private static void SerializeMap(Map map, string filePath)
+        {
+            using (Stream stream = File.OpenWrite(filePath))
+            {
+                BinaryFormatter serializer =
+                    new BinaryFormatter();
+
+                map.ClearSaves();
+                serializer.Serialize(stream, map);
+            }
+        }
+
+        private Map DeserializeMap(string filePath)
+        {
+            using (Stream stream = File.OpenRead(filePath))
+            {
+                BinaryFormatter serializer =
+                    new BinaryFormatter();
+
+                Map map = (Map)serializer.Deserialize(stream);
+                return map;
+            }
+        }
+
+        private void CollapseForm(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Minimized;
+        }
+
+        private void ChangeExpandingOfForm(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Maximized)
+                WindowState = FormWindowState.Normal;
+            else WindowState = FormWindowState.Maximized;
+
+            _scenesContainer.Invalidate();
+            _scenesContainer.Control.Invalidate();
         }
     }
 }

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 
 namespace Sudoku.MapLogic
 {
@@ -22,7 +21,7 @@ namespace Sudoku.MapLogic
         Colors,
     }
 
-    [DataContract]
+    [Serializable]
     /// <summary>
     /// Описывает карту и предоставляет средства для ее редактирования,
     /// а также получения интерфейса для проигрывания
@@ -50,17 +49,21 @@ namespace Sudoku.MapLogic
         private const string _creatingInterfaceWithConflictsMessage = "Нельзя получить интерфейс карты с конфликтными ячейками";
         private const string _incorrectSizesForCopyOperationMessage = "Копирование невозможно, если карты имеют разные размеры";
 
+        private readonly Guid _id;
         private MapTypes _type;
 
         private readonly List<Cell> _cells = new List<Cell>();
-
         private readonly List<Conflict> _conflicts = new List<Conflict>();
-
         private readonly List<Group> _groups = new List<Group>();
-
         private readonly List<Group> _selectedGroups = new List<Group>();
+
         private readonly List<MapSave> _saves = new List<MapSave>();
         private int _savesCapacity;
+
+        [NonSerialized]
+        private bool _saveBlock;
+
+        [NonSerialized]
         private int _saveInd;
 
         /// <summary>
@@ -76,6 +79,7 @@ namespace Sudoku.MapLogic
             if (heght < MinLength || heght > MaxLength)
                 heght = BaseLength;
 
+            _id = Guid.NewGuid();
             ColumnsCount = width;
             RowsCount = heght;
             InitializeCells();
@@ -112,6 +116,11 @@ namespace Sudoku.MapLogic
         public string Name { get; set; }
 
         /// <summary>
+        /// Идентификатор сериализации объекта
+        /// </summary>
+        public Guid ID => _id;
+
+        /// <summary>
         /// Описание карты.
         /// </summary>
         public string Description { get; set; }
@@ -138,8 +147,7 @@ namespace Sudoku.MapLogic
                     }
 
                     _savesCapacity = value;
-                }
-                    
+                }   
             }
         }
 
@@ -176,7 +184,7 @@ namespace Sudoku.MapLogic
                 UpdateConflicts(oldValue);
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -210,7 +218,42 @@ namespace Sudoku.MapLogic
             UpdateConflicts(value);
             UpdateConflicts(oldValue);
 
-            Save();
+            if (!_saveBlock) Save();
+        }
+
+        /// <summary>
+        /// Считает число заданных решений ячеек в текущем экземпляре
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        public int CountContent(int content)
+        {
+            int count = 0;
+
+            foreach (var cell in _cells)
+            {
+                if (cell.Correct == content)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Выделяет все ячейки с заданным решением
+        /// </summary>
+        /// <param name="content"></param>
+        public void SelectContent(int content)
+        {
+            foreach (var cell in _cells)
+            {
+                if (cell.Correct == content)
+                {
+                    cell.IsSelected = true;
+                }
+            }
         }
 
         /// <summary>
@@ -236,7 +279,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -262,7 +305,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -285,7 +328,7 @@ namespace Sudoku.MapLogic
             group.Type = type;
             _groups.Add(group);
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -301,7 +344,7 @@ namespace Sudoku.MapLogic
             if (group == null) throw new InvalidOperationException(_areaNotFoundMessage);
             group.Clear();
             _groups.Remove(group);
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -322,7 +365,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -349,7 +392,7 @@ namespace Sudoku.MapLogic
                     group.AddCell(c);
             }
 
-            Save();
+            if (!_saveBlock) Save();
 
             return true;
         }
@@ -372,7 +415,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -389,7 +432,7 @@ namespace Sudoku.MapLogic
             Cell cell = FindCell(row, column);
             Group group = FindGroup(id, createNew: true);
             group.AddCell(cell);
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -414,7 +457,7 @@ namespace Sudoku.MapLogic
                     _selectedGroups.Remove(group);
                 }
 
-                Save();
+                if (!_saveBlock) Save();
             }
         }
 
@@ -432,7 +475,7 @@ namespace Sudoku.MapLogic
             Group group = FindGroup(id, createNew: false);
             if (group == null) throw new InvalidOperationException(_areaNotFoundMessage);
             group.Type = type;
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -518,7 +561,7 @@ namespace Sudoku.MapLogic
                 }
             }
 
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -533,12 +576,19 @@ namespace Sudoku.MapLogic
         }
 
         /// <summary>
+        /// Очищает быстрые сохранения карты
+        /// </summary>
+        public void ClearSaves()
+        {
+            _saves.Clear();
+        }
+
+        /// <summary>
         /// Очищает текущий экземпляр.
         /// </summary>
         public void Clear()
         {
-            if (_saves.Count == 0)
-                Save();
+            _saveBlock = true;
 
             _conflicts.Clear();
             for (; 0 < _groups.Count;)
@@ -554,8 +604,9 @@ namespace Sudoku.MapLogic
                 cell.IsSelected = false;
             }
 
+            _saveBlock = false;
             _selectedGroups.Clear();
-            Save();
+            if (!_saveBlock) Save();
         }
 
         /// <summary>
@@ -563,7 +614,7 @@ namespace Sudoku.MapLogic
         /// </summary>
         public void Undo()
         {
-            if (_saveInd == 0)
+            if (_saveInd == 0 || _saves.Count == 0)
                 return;
 
             _saveInd--;
@@ -576,7 +627,7 @@ namespace Sudoku.MapLogic
         /// </summary>
         public void Redo()
         {
-            if (_saveInd == _saves.Count - 1)
+            if (_saveInd >= _saves.Count - 1 || _saves.Count == 0)
                 return;
 
             _saveInd++;
@@ -756,6 +807,7 @@ namespace Sudoku.MapLogic
                 foreach (Group group in cell.Groups)
                 {
                     map.AddCellToGroup(cell, group.ID);
+                    map.ChangeGroupType(group.ID, group.Type);
                 }
             }
         }
@@ -955,10 +1007,11 @@ namespace Sudoku.MapLogic
             if (conflictList.Count == 0)
                 return;
 
-            Conflict updatedConflict = new Conflict(conflictList, value);
+            Conflict updatedConflict = new Conflict(conflictList.ToList(), value);
             _conflicts.Add(updatedConflict);
         }
 
+        [Serializable]
         private class Cell
         {
             private int _correct;
@@ -971,6 +1024,7 @@ namespace Sudoku.MapLogic
                 Column = column;
                 IsAvailable = false;
                 IsSelected = false;
+                State = CellState.Unknown;
             }
 
             public int Correct 
@@ -989,6 +1043,8 @@ namespace Sudoku.MapLogic
             public bool IsAvailable { get; set; }
 
             public bool IsSelected { get; set; }
+
+            public CellState State { get; set; }
 
             public IReadOnlyCollection<Group> Groups { get { return _groups; } }
 
@@ -1042,11 +1098,12 @@ namespace Sudoku.MapLogic
             }
         }
 
+        [Serializable]
         private class Conflict
         {
             private readonly List<Cell> _cells;
 
-            public Conflict(ICollection<Cell> cells, int conflictValue)
+            public Conflict(List<Cell> cells, int conflictValue)
             {
                 _cells = cells.ToList();
                 ConflictValue = conflictValue;
@@ -1068,6 +1125,7 @@ namespace Sudoku.MapLogic
             }
         }
 
+        [Serializable]
         private class Group
         {
             private readonly int _id;
@@ -1116,9 +1174,9 @@ namespace Sudoku.MapLogic
 
             public void Clear()
             {
-                for (int i = 0; i < _cells.Count; i++)
+                for (; 0 < _cells.Count;)
                 {
-                    Cell cell = _cells[i];
+                    Cell cell = _cells[0];
                     RemoveCell(cell);
                 }
             }
@@ -1142,16 +1200,25 @@ namespace Sudoku.MapLogic
             Dots,
         }
 
+        [Serializable]
         private class CellRule
         {
 
         }
 
+        [Serializable]
         private class MapSave
         {
+            [NonSerialized]
             private readonly List<CellInterface> _cells = new List<CellInterface>();
+
+            [NonSerialized]
             private readonly List<GroupInfo> _groups = new List<GroupInfo>();
+
+            [NonSerialized]
             private readonly List<GroupInfo> _selectedGroups = new List<GroupInfo>();
+
+            [NonSerialized]
             private readonly List<ConflictInfo> _conflicts = new List<ConflictInfo>();
 
             public MapSave(Map map)

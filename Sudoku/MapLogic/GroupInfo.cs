@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 namespace Sudoku.MapLogic
 {
     /// <summary>
@@ -10,6 +12,7 @@ namespace Sudoku.MapLogic
         Sum
     }
 
+    [Serializable]
     /// <summary>
     /// Предоставляет информацию о группе карты судоку.
     /// </summary>

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Windows.Forms;
 
@@ -15,9 +16,11 @@ namespace Sudoku.Controls
     /// </summary>
     internal sealed class SudokuEditor : Control
     {
+        private const int _contentCounterSplitter = 5;
         private Map _map;
         private readonly MapDrawer _drawer;
         private readonly List<CellInfoPanel> _showingCells;
+        private readonly List<ContentCounterPanel> _contentCounterPanels;
         private readonly GroupEditingPanel _editingPanel;
         private readonly MenuPanel _menuPanel;
         private PointF _selectionRectBegin;
@@ -26,13 +29,14 @@ namespace Sudoku.Controls
         private Pen _selectionRectPen;
         private Pen _splitterPen;
         private Pen _leftTopDecoPen;
-        private RectangleF _mapDisplayRect;
-        private RectangleF _cellEditRect;
+        private Rectangle _mapDisplayRect;
+        private Rectangle _cellEditRect;
         private RectangleF _selectionRect;
-        private RectangleF _selectedCellsListRect;
-        private RectangleF _editRect;
-        private RectangleF _menuRect;
-        private float _splitterRatio = 0.7f;
+        private Rectangle _selectedCellsListRect;
+        private Rectangle _editRect;
+        private Rectangle _menuRect;
+        private Rectangle _bottomPanelRect;
+        private float _splitterRatio = 0.71f;
         private float _cellPanelHeight;
         private float _cellPanelsSplitterWidth;
         private float _scroll;
@@ -45,7 +49,6 @@ namespace Sudoku.Controls
         private bool _isSaved;
         private BorderStyle _borderStyle;
         
-
         /// <summary>
         /// Инициализирует новый экземпляр SudokuEditor.
         /// </summary>
@@ -62,6 +65,7 @@ namespace Sudoku.Controls
             _map = map;
 
             _showingCells = new List<CellInfoPanel>();
+            _contentCounterPanels = new List<ContentCounterPanel>();
             _editingPanel = new GroupEditingPanel(_editRect);
             _menuPanel = new MenuPanel(_editRect);
             Width = 350;
@@ -90,10 +94,10 @@ namespace Sudoku.Controls
                 DashStyle = DashStyle.Dash,
             };
 
-            _mapDisplayRect = new RectangleF()
+            _mapDisplayRect = new Rectangle()
             {
                 Height = Height,
-                Width = Width * _splitterRatio,
+                Width = (int)(Width * _splitterRatio),
             };
 
             _noSelectedCellsMessageFormat = new StringFormat()
@@ -113,8 +117,17 @@ namespace Sudoku.Controls
         /// </summary>
         public Map Map
         {
-            get { return _map; }
-            set { _map = value; }
+            get 
+            {
+                return _map;
+            }
+            set 
+            {
+                _isSaved = true;
+                _map = value;
+
+                UpdateContentCounters();
+            }
         }
 
         /// <summary>
@@ -173,6 +186,11 @@ namespace Sudoku.Controls
         public string SavePath { get; set; }
 
         /// <summary>
+        /// Происходит при нажатии кнопки "проиграть карту".
+        /// </summary>
+        public event MapActionClickHandler PlayButtonClicked;
+
+        /// <summary>
         /// Происходит при нажатии кнопки "сохранить карту".
         /// </summary>
         public event MapActionClickHandler SaveButtonClicked;
@@ -212,11 +230,23 @@ namespace Sudoku.Controls
                     cell.Draw(g);
             }
 
+            g.FillRectangle(Brushes.White, _bottomPanelRect);
             g.FillRectangle(Brushes.White, _menuRect);
             g.FillRectangle(Brushes.White, _editRect);
             g.FillRectangle(_editRectBrush, _editRect);
             g.DrawRectangle(Pens.DarkGray, _editRect.X, 
                 _editRect.Y, _editRect.Width, _editRect.Height);
+
+            g.DrawRectangle(Pens.Gray, _bottomPanelRect);
+
+            int nextX = _bottomPanelRect.X + 3;
+            for (int i = 0; i < _contentCounterPanels.Count; i++)
+            {
+                var panel = _contentCounterPanels[i];
+                panel.X = nextX;
+                nextX += _contentCounterSplitter + panel.Width;
+                panel.Draw(g);
+            }
 
             _editingPanel.Draw(g);
             _menuPanel.Draw(g);
@@ -252,6 +282,7 @@ namespace Sudoku.Controls
             private RectangleF _redoBtnBounds;
             private RectangleF _undoBtnBounds;
             private RectangleF _clearBtnBounds;
+            private RectangleF _playBtnBounds;
             private int _splitterWidth;
             private readonly Brush _btnSelectionBrush;
             private HatchBrush _bgHatchBrush;
@@ -290,6 +321,8 @@ namespace Sudoku.Controls
 
             public bool IsClearButtonSelected { get; set; }
 
+            public bool IsPlayButtonSelected { get; set; }
+
             public bool IsSaveButtonPressed { get; set; }
 
             public bool IsRedoButtonPressed { get; set; }
@@ -298,12 +331,15 @@ namespace Sudoku.Controls
 
             public bool IsClearButtonPressed { get; set; }
 
+            public bool IsPlayButtonPressed { get; set; }
+
             public void Draw(Graphics g)
             {
                 g.FillRectangle(_bgHatchBrush, _bounds);
                 g.FillRectangle(_bgGradientBrush, _bounds);
                 g.DrawRectangle(_pen, _bounds.X, _bounds.Y,
                     _bounds.Width, _bounds.Height);
+
                 DrawSaveIcon(g, _saveBtnBounds);
                 DrawButton(g, IsSaveButtonSelected, _saveBtnBounds);
                 DrawRedoIcon(g, _redoBtnBounds);
@@ -312,10 +348,14 @@ namespace Sudoku.Controls
                 DrawButton(g, IsUndoButtonSelected, _undoBtnBounds);
                 DrawClearIcon(g, _clearBtnBounds);
                 DrawButton(g, IsClearButtonSelected, _clearBtnBounds);
+                DrawPlayIcon(g, _playBtnBounds);
+                DrawButton(g, IsPlayButtonSelected, _playBtnBounds);
+
                 FillButton(g, IsSaveButtonPressed, _saveBtnBounds);
                 FillButton(g, IsRedoButtonPressed, _redoBtnBounds);
                 FillButton(g, IsUndoButtonPressed, _undoBtnBounds);
                 FillButton(g, IsClearButtonPressed, _clearBtnBounds);
+                FillButton(g, IsPlayButtonPressed, _playBtnBounds);
             }
 
             private void DrawRedoIcon(Graphics g, RectangleF redoBtnBounds)
@@ -340,6 +380,12 @@ namespace Sudoku.Controls
             {
                 Image image = Properties.Resources.SavingIcon;
                 g.DrawImage(image, saveBtnBounds);
+            }
+
+            private void DrawPlayIcon(Graphics g, RectangleF playBtnBounds)
+            {
+                Image image = Properties.Resources.PlayingIcon;
+                g.DrawImage(image, playBtnBounds);
             }
 
             private void FillButton(Graphics g, bool isPressed, RectangleF rect)
@@ -374,6 +420,11 @@ namespace Sudoku.Controls
             public bool IsSaveButtonFocused(PointF point)
             {
                 return _saveBtnBounds.Contains(point);
+            }
+
+            public bool IsPlayButtonFocused(PointF point)
+            {
+                return _playBtnBounds.Contains(point);
             }
 
             public bool IsRedoButtonFocused(PointF point)
@@ -434,6 +485,14 @@ namespace Sudoku.Controls
                 _undoBtnBounds = new RectangleF()
                 {
                     X = _redoBtnBounds.Right + _splitterWidth,
+                    Y = _bounds.Y + 3,
+                    Height = height,
+                    Width = height,
+                };
+
+                _playBtnBounds = new RectangleF()
+                {
+                    X = _undoBtnBounds.Right + _splitterWidth,
                     Y = _bounds.Y + 3,
                     Height = height,
                     Width = height,
@@ -954,13 +1013,13 @@ namespace Sudoku.Controls
                     switch (CellState)
                     {
                         case CellState.Interactive:
-                            image = Properties.Resources.InteractiveCellIcon;
+                            image = Properties.Resources.PencilIcon;
                             break;
                         case CellState.NonInteractive:
                             image = Properties.Resources.NonInteractiveCellIcon;
                             break;
                         default:
-                            image = Properties.Resources.InteractiveCellIcon;
+                            image = Properties.Resources.PencilIcon;
                             break;
                     }
 
@@ -1043,7 +1102,7 @@ namespace Sudoku.Controls
                 _eneteredBrush = new SolidBrush(Color.Gray);
                 _selectionBrush = new SolidBrush(Color.LightGray);
 
-                _font = new Font("Times New Roman", 18);
+                _font = new Font("Times New Roman", 35);
 
                 _image = Properties.Resources.ChangingIcon;
                 ConstructBounds();
@@ -1229,6 +1288,83 @@ namespace Sudoku.Controls
             }
         }
 
+        private class ContentCounterPanel : SudokuControlModel
+        {
+            private SudokuControlModel _countPanel;
+            private SudokuControlModel _contentPanel;
+
+            public ContentCounterPanel()
+            {
+                _countPanel = new SudokuControlModel();
+                _contentPanel = new SudokuControlModel();
+                _countPanel.Font = Font;
+                _contentPanel.Font = Font;
+            }
+
+            public string Content 
+            {
+                get
+                {
+                    return _contentPanel.Text;
+                }
+                set
+                {
+                    _contentPanel.Text = value;
+                }
+            }
+
+            public string Count
+            {
+                get
+                {
+                    return _countPanel.Text;
+                }
+                set
+                {
+                    _countPanel.Text = value;
+                }
+            }
+
+            public new Font Font 
+            {
+                get
+                {
+                    return base.Font;
+                } 
+                set
+                {
+                    base.Font = value;
+                    _countPanel.Font = base.Font;
+                    _contentPanel.Font = base.Font;
+                }
+            }
+
+            public override void Draw(Graphics g)
+            {
+                ConstructBounds();
+                int diam = _contentPanel.Height * 8 / 10;
+                int ellX = _contentPanel.X + (_contentPanel.Width - diam) / 2;
+                int ellY = _contentPanel.Y + (_contentPanel.Height - diam) / 2;
+                g.FillEllipse(Brushes.LightSkyBlue, ellX, ellY, diam, diam);
+                _contentPanel.Draw(g);
+                _countPanel.Draw(g);
+                base.Draw(g);
+            }
+
+            private void ConstructBounds()
+            {
+                _contentPanel.X = X;
+                _contentPanel.Y = Y;
+                _contentPanel.Width = Width / 2;
+                _contentPanel.Height = Height;
+
+                _countPanel.X = X + Width / 2;
+                _countPanel.Y = Y;
+                _countPanel.Width = Width / 2;
+                _countPanel.Height = Height;
+            }
+        }
+
         private void DrawLeftTopDeco(Graphics g)
         {
             PointF begin = new PointF(_mapDisplayRect.Width + 7, _menuRect.Bottom + 6);
@@ -1256,13 +1392,18 @@ namespace Sudoku.Controls
 
         protected override void OnResize(EventArgs e)
         {
-            _mapDisplayRect = new RectangleF()
+            _bottomPanelRect.Height = Height * 5 / 100;
+            _bottomPanelRect.Width = (int)(Width * _splitterRatio);
+            _bottomPanelRect.X = 0;
+            _mapDisplayRect = new Rectangle()
             {
-                Width = Width * _splitterRatio,
-                Height = Height,
+                Width = (int)(Width * _splitterRatio),
+                Height = Height - _bottomPanelRect.Height - 1,
             };
 
-            _cellEditRect = new RectangleF()
+            _bottomPanelRect.Y = _mapDisplayRect.Bottom;
+
+            _cellEditRect = new Rectangle()
             {
                 Width = Width - _mapDisplayRect.Width,
                 Height = Height,
@@ -1270,23 +1411,23 @@ namespace Sudoku.Controls
                 Y = 0
             };
 
-            _menuRect = new RectangleF()
+            _menuRect = new Rectangle()
             {
                 X = _cellEditRect.X,
                 Y = _cellEditRect.Y,
                 Width = _cellEditRect.Width,
-                Height = _cellEditRect.Height * 0.07f
+                Height = _cellEditRect.Height * 7 / 100
             };
 
-            _selectedCellsListRect = new RectangleF()
+            _selectedCellsListRect = new Rectangle()
             {
                 X = _cellEditRect.X + 15,
                 Y = _menuRect.Bottom + 15,
                 Width = _cellEditRect.Width - 30,
-                Height = _cellEditRect.Height * 0.78f
+                Height = _cellEditRect.Height * 78 / 100
             };
 
-            _editRect = new RectangleF()
+            _editRect = new Rectangle()
             {
                 X = _cellEditRect.X,
                 Y = _selectedCellsListRect.Bottom + 20,
@@ -1299,6 +1440,7 @@ namespace Sudoku.Controls
             _editingPanel?.ChangeContainer(_editRect);
             _menuPanel?.ChangeContainer(_menuRect);
             _scroll = 0;
+            UpdateContentCounters();
             UpdateShowingCells();
             ValidateScroll();
         }
@@ -1311,26 +1453,38 @@ namespace Sudoku.Controls
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (_selectedCellsListRect.Contains(e.Location))
-            {
-                return;
-            }
-
             if (e.Button == MouseButtons.Left)
             {
-                if (!_isSelecting)
+                if (_mapDisplayRect.Contains(e.Location))
                 {
-                    _selectionRectBegin = e.Location;
-                    _selectionRectEnd = e.Location;
+                    if (!_isSelecting)
+                    {
+                        _selectionRectBegin = e.Location;
+                        _selectionRectEnd = e.Location;
+                    }
+
+                    _isSelecting = true;
                 }
 
-                _isSelecting = true;
+                else
+                {
+                    bool wasPressedPanel = false;
+                    foreach (var panel in _contentCounterPanels)
+                    {
+                        if (!wasPressedPanel)
+                            panel.IsPressed = panel.IsFocused(e.Location);
+                        else
+                            panel.IsPressed = false;
+                    }
 
-                _menuPanel.IsClearButtonPressed = _menuPanel.IsClearButtonFocused(e.Location);
-                _menuPanel.IsRedoButtonPressed = _menuPanel.IsRedoButtonFocused(e.Location);
-                _menuPanel.IsUndoButtonPressed = _menuPanel.IsUndoButtonFocused(e.Location);
-                _menuPanel.IsSaveButtonPressed = _menuPanel.IsSaveButtonFocused(e.Location);
-                _editingPanel.IsButtonPressed = _editingPanel.IsButtonSelected;
+                    _menuPanel.IsClearButtonPressed = _menuPanel.IsClearButtonFocused(e.Location);
+                    _menuPanel.IsRedoButtonPressed = _menuPanel.IsRedoButtonFocused(e.Location);
+                    _menuPanel.IsUndoButtonPressed = _menuPanel.IsUndoButtonFocused(e.Location);
+                    _menuPanel.IsSaveButtonPressed = _menuPanel.IsSaveButtonFocused(e.Location);
+                    _menuPanel.IsPlayButtonPressed = _menuPanel.IsPlayButtonFocused(e.Location);
+                    _editingPanel.IsButtonPressed = _editingPanel.IsButtonSelected;
+                    _isSelecting = false;
+                }
 
                 Invalidate();
             }
@@ -1360,10 +1514,18 @@ namespace Sudoku.Controls
             _editingPanel.IsButtonSelected = _editingPanel.IsButtonFocused(e.Location);
             _editingPanel.IsIDBoxSelected = _editingPanel.IsIDBoxFocused(e.Location);
             _editingPanel.IsTypeBoxSelected = _editingPanel.IsTypeBoxFocused(e.Location);
+
             _menuPanel.IsSaveButtonSelected = _menuPanel.IsSaveButtonFocused(e.Location);
             _menuPanel.IsClearButtonSelected = _menuPanel.IsClearButtonFocused(e.Location);
             _menuPanel.IsRedoButtonSelected = _menuPanel.IsRedoButtonFocused(e.Location);
             _menuPanel.IsUndoButtonSelected = _menuPanel.IsUndoButtonFocused(e.Location);
+            _menuPanel.IsPlayButtonSelected = _menuPanel.IsPlayButtonFocused(e.Location);
+
+            foreach (var panel in _contentCounterPanels)
+            {
+                panel.IsSelected = panel.IsFocused(e.Location);
+            }
+
             Invalidate();
         }
 
@@ -1371,7 +1533,7 @@ namespace Sudoku.Controls
         {
             if (e.Button == MouseButtons.Left)
             {
-                if (!_isShiftPressed && _mapDisplayRect.Contains(e.Location))
+                if (!_isShiftPressed && _isSelecting)
                     _map.ClearSelection();
 
                 if (_isSelecting)
@@ -1388,6 +1550,11 @@ namespace Sudoku.Controls
                         {
                             _map.ChangeCellSelection(cellPos.Y, cellPos.X);
                         }
+                    }
+
+                    foreach (var panel in _contentCounterPanels)
+                    {
+                        panel.IsPressed = false;
                     }
                 }
 
@@ -1433,6 +1600,20 @@ namespace Sudoku.Controls
             if (e.Button == MouseButtons.Right)
             {
                 _map.ClearSelection();
+                foreach (var panel in _contentCounterPanels)
+                {
+                    panel.IsPressed = false;
+                }
+            }
+
+            foreach (var panel in _contentCounterPanels)
+            {
+                if (panel.IsPressed)
+                {
+                    _map.ClearSelection();
+                    int content = int.Parse(panel.Content);
+                    _map.SelectContent(content);
+                }
             }
 
             _editingPanel.IsIDEntering = _editingPanel.IsIDBoxFocused(e.Location);
@@ -1453,6 +1634,11 @@ namespace Sudoku.Controls
                 _map.Undo();
             }
 
+            if (_menuPanel.IsPlayButtonPressed)
+            {
+                OnPlayButtonClick(new MapActionClickArgs(_map));
+            }
+
             if (!_isSelecting)
                 _isSaved = false;
 
@@ -1466,6 +1652,7 @@ namespace Sudoku.Controls
             _menuPanel.IsRedoButtonPressed = false;
             _menuPanel.IsUndoButtonPressed = false;
             _menuPanel.IsSaveButtonPressed = false;
+            _menuPanel.IsPlayButtonPressed = false;
             _editingPanel.IsButtonPressed = false;
 
             _isSelecting = false;
@@ -1504,6 +1691,12 @@ namespace Sudoku.Controls
                 _scroll = 0;
         }
 
+        protected override void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
+        {
+            e.IsInputKey = true;
+            base.OnPreviewKeyDown(e);
+        }
+
         protected override void OnKeyDown(KeyEventArgs e)
         {
             if (e.Shift)
@@ -1519,6 +1712,13 @@ namespace Sudoku.Controls
                 {
                     case Keys.S:
                         OnSaveButtonClick(new MapActionClickArgs(_map));
+                        _isSaved = true;
+                        break;
+                    case Keys.Z:
+                        _map.Undo();
+                        break;
+                    case Keys.Y:
+                        _map.Redo();
                         break;
                 }
             }
@@ -1541,12 +1741,6 @@ namespace Sudoku.Controls
                         break;
                     case Keys.O:
                         _map.ChangeSelectedAvailability();
-                        break;
-                    case Keys.Z:
-                        _map.Undo();
-                        break;
-                    case Keys.Y:
-                        _map.Redo();
                         break;
                 }
             }
@@ -1616,6 +1810,47 @@ namespace Sudoku.Controls
                         }
                         break;
                 }
+
+                var selectedCells = _map.GetSelectedCells();
+                if (selectedCells.Count() == 1)
+                {
+                    CellInfo cell = selectedCells.First();
+                    switch (e.KeyCode)
+                    {
+                        case Keys.Up:
+                            int newPos = cell.Row - 1;
+                            if (newPos > -1)
+                            {
+                                _map.ClearSelection();
+                                _map.ChangeCellSelection(newPos, cell.Column);
+                            }
+                            break;
+                        case Keys.Down:
+                            newPos = cell.Row + 1;
+                            if (newPos < _map.RowsCount)
+                            {
+                                _map.ClearSelection();
+                                _map.ChangeCellSelection(newPos, cell.Column);
+                            }
+                            break;
+                        case Keys.Left:
+                            newPos = cell.Column - 1;
+                            if (newPos > -1)
+                            {
+                                _map.ClearSelection();
+                                _map.ChangeCellSelection(cell.Row, newPos);
+                            }
+                            break;
+                        case Keys.Right:
+                            newPos = cell.Column + 1;
+                            if (newPos < _map.ColumnsCount)
+                            {
+                                _map.ClearSelection();
+                                _map.ChangeCellSelection(cell.Row, newPos);
+                            }
+                            break;
+                    }
+                }
             }
 
             UpdateShowingCells();
@@ -1645,6 +1880,9 @@ namespace Sudoku.Controls
         protected override void OnKeyUp(KeyEventArgs e)
         {
             _isShiftPressed = false;
+
+            UpdateContentCounters();
+            Invalidate();
         }
 
         private void UpdateShowingCells()
@@ -1675,9 +1913,52 @@ namespace Sudoku.Controls
             }
         }
 
+        private void UpdateContentCounters()
+        {
+            _contentCounterPanels.Clear();
+            var addedCounters = new List<int>();
+            var contents = _map.GetCells().Select(c => c.Correct).Where(c => c != 0);
+            contents = contents.OrderBy(c => c);
+            foreach (int cont in contents)
+            {
+                if (addedCounters.Contains(cont))
+                    continue;
+
+                else
+                {
+                    addedCounters.Add(cont);
+
+                    ContentCounterPanel panel = new ContentCounterPanel
+                    {
+                        Font = new Font("Times New Roman", 12),
+                        Content = cont.ToString(),
+                        Count = _map.CountContent(cont).ToString(),
+                        Y = _bottomPanelRect.Y + 3,
+                        Height = _bottomPanelRect.Height - 6
+                    };
+
+                    _contentCounterPanels.Add(panel);
+                }
+            }
+
+            foreach (var panel in _contentCounterPanels)
+            {
+                int splittersWidth =
+                    _contentCounterSplitter * _contentCounterPanels.Count;
+                panel.Width = 
+                    (_bottomPanelRect.Width - splittersWidth)
+                    / _contentCounterPanels.Count;
+            }
+        }
+
         private void OnSaveButtonClick(MapActionClickArgs e)
         {
             SaveButtonClicked?.Invoke(this, e);
+        }
+
+        private void OnPlayButtonClick(MapActionClickArgs e)
+        {
+            PlayButtonClicked?.Invoke(this, e);
         }
     }
 }

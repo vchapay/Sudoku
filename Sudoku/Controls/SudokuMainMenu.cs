@@ -15,6 +15,8 @@ namespace Sudoku.Controls
         private Font _nameFont;
         private SolidBrush _nameBrush;
         private StringFormat _format;
+        private SudokuControlModel _continueBtn;
+        private bool _isContinueBtnEnable;
         private SudokuControlModel _generateBtn;
         private SudokuControlModel _editorBtn;
         private HatchBrush _bgHatchBrush;
@@ -28,6 +30,13 @@ namespace Sudoku.Controls
                 ControlStyles.UserPaint, true);
 
             DoubleBuffered = true;
+
+            _continueBtn = new SudokuControlModel()
+            {
+                Text = "Продолжить",
+                TextTrimming = 20,
+                Font = new Font("Times New Roman", 32)
+            };
 
             _generateBtn = new SudokuControlModel()
             {
@@ -64,6 +73,20 @@ namespace Sudoku.Controls
             BackColor = Color.White;
         }
 
+        public bool IsContinueButtonEnable
+        {
+            get 
+            {
+                return _isContinueBtnEnable;
+            }
+            set 
+            {
+                _isContinueBtnEnable = value;
+            }
+        }
+
+        public event EventHandler ContinueButtonClicked;
+
         public event EventHandler GenerateButtonClicked;
 
         public event EventHandler EditorButtonClicked;
@@ -75,6 +98,8 @@ namespace Sudoku.Controls
             g.FillRectangle(_bgHatchBrush, new Rectangle(0, 0, Width, Height));
             g.FillRectangle(_bgGradientBrush, new Rectangle(0, 0, Width, Height));
             g.DrawString("Судоку", _nameFont, _nameBrush, _nameLblRect, _format);
+            if (_isContinueBtnEnable)
+                _continueBtn.Draw(g);
             _generateBtn.Draw(g);
             _editorBtn.Draw(g);
         }
@@ -86,10 +111,15 @@ namespace Sudoku.Controls
             _nameLblRect.X = (Width - _nameLblRect.Width) / 2;
             _nameLblRect.Y = 0;
 
+            _continueBtn.Height = 100;
+            _continueBtn.Width = Width * 5 / 10;
+            _continueBtn.X = (Width - _generateBtn.Width) / 2;
+            _continueBtn.Y = Height * 4 / 10;
+
             _generateBtn.Width = Width * 5 / 10;
             _generateBtn.Height = 100;
             _generateBtn.X = (Width - _generateBtn.Width) / 2;
-            _generateBtn.Y = Height * 6 / 10;
+            _generateBtn.Y = _continueBtn.Bottom + 10;
 
             _editorBtn.Width = Width * 5 / 10;
             _editorBtn.Height = 100;
@@ -105,6 +135,8 @@ namespace Sudoku.Controls
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
+            if (_isContinueBtnEnable)
+                _continueBtn.IsPressed = _generateBtn.IsFocused(e.Location);
             _generateBtn.IsPressed = _generateBtn.IsFocused(e.Location);
             _editorBtn.IsPressed = _editorBtn.IsFocused(e.Location);
             Invalidate();
@@ -112,6 +144,7 @@ namespace Sudoku.Controls
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
+            _continueBtn.IsSelected = _generateBtn.IsFocused(e.Location);
             _generateBtn.IsSelected = _generateBtn.IsFocused(e.Location);
             _editorBtn.IsSelected = _editorBtn.IsFocused(e.Location);
             Invalidate();
@@ -119,6 +152,9 @@ namespace Sudoku.Controls
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
+            if (_continueBtn.IsPressed)
+                OnContinueButtonClicked(EventArgs.Empty);
+
             if (_generateBtn.IsPressed)
                 OnGenerateButtonClick(EventArgs.Empty);
 
@@ -128,6 +164,11 @@ namespace Sudoku.Controls
             _generateBtn.IsPressed = false;
             _editorBtn.IsPressed = false;
             Invalidate();
+        }
+
+        private void OnContinueButtonClicked(EventArgs e)
+        {
+            ContinueButtonClicked?.Invoke(this, e);
         }
 
         private void OnGenerateButtonClick(EventArgs e)

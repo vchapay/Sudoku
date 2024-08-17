@@ -1,9 +1,4 @@
 ﻿using Sudoku.MapLogic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Sudoku.Controls
 {
@@ -17,7 +12,7 @@ namespace Sudoku.Controls
         }
 
         /// <summary>
-        /// Карта, для которой была нажата кнопка
+        /// Карта, для которой было совершено действие
         /// </summary>
         public Map Map => _map;
     }
