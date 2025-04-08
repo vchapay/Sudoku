@@ -4,9 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Windows.Forms;
 
 namespace Sudoku.Controls
@@ -17,10 +15,12 @@ namespace Sudoku.Controls
     internal sealed class SudokuEditor : Control
     {
         private const int _contentCounterSplitter = 5;
+        private const int _groupEditingHeight = 70;
         private Map _map;
-        private readonly MapDrawer _drawer;
+        private readonly MapEditorDisplayDrawer _drawer;
         private readonly List<CellInfoPanel> _showingCells;
         private readonly List<ContentCounterPanel> _contentCounterPanels;
+        private readonly CellsMainInfoPanel _mainInfoPanel;
         private readonly GroupEditingPanel _editingPanel;
         private readonly MenuPanel _menuPanel;
         private PointF _selectionRectBegin;
@@ -35,6 +35,7 @@ namespace Sudoku.Controls
         private Rectangle _selectedCellsListRect;
         private Rectangle _editRect;
         private Rectangle _menuRect;
+        private Rectangle _cellsMainInfoRect;
         private Rectangle _bottomPanelRect;
         private float _splitterRatio = 0.71f;
         private float _cellPanelHeight;
@@ -48,7 +49,7 @@ namespace Sudoku.Controls
         private bool _isShiftPressed;
         private bool _isSaved;
         private BorderStyle _borderStyle;
-        
+
         /// <summary>
         /// Инициализирует новый экземпляр SudokuEditor.
         /// </summary>
@@ -61,17 +62,19 @@ namespace Sudoku.Controls
 
             DoubleBuffered = true;
             Map map = new Map();
-            _drawer = new MapDrawer();
             _map = map;
 
             _showingCells = new List<CellInfoPanel>();
             _contentCounterPanels = new List<ContentCounterPanel>();
-            _editingPanel = new GroupEditingPanel(_editRect);
-            _menuPanel = new MenuPanel(_editRect);
             Width = 350;
             Height = 350;
 
-            Font = _drawer.Font;
+            _mainInfoPanel = new CellsMainInfoPanel(_cellsMainInfoRect);
+            _editingPanel = new GroupEditingPanel(_editRect);
+            _menuPanel = new MenuPanel(_menuRect);
+            _drawer = new MapEditorDisplayDrawer(_map, _mapDisplayRect);
+
+            Font = _drawer.SolutionsFont;
             _noSelectedCellsMessageFont = new Font("Times New Roman", 18);
 
             _leftTopDecoPen = new Pen(Color.DarkGray)
@@ -125,7 +128,7 @@ namespace Sudoku.Controls
             {
                 _isSaved = true;
                 _map = value;
-
+                _drawer.Target = _map;
                 UpdateContentCounters();
             }
         }
@@ -180,12 +183,6 @@ namespace Sudoku.Controls
         }
 
         /// <summary>
-        /// Путь, по которому будет сохраняться объект карты
-        /// при нажатии на кнопку сохранения
-        /// </summary>
-        public string SavePath { get; set; }
-
-        /// <summary>
         /// Происходит при нажатии кнопки "проиграть карту".
         /// </summary>
         public event MapActionClickHandler PlayButtonClicked;
@@ -200,7 +197,7 @@ namespace Sudoku.Controls
             Graphics g = e.Graphics;
             g.Clear(Color.White);
 
-            _drawer.Draw(g, _mapDisplayRect, _map);
+            _drawer.Draw(g);
             if (_isSelecting)
             {
                 ConstructSelectionRect();
@@ -250,6 +247,7 @@ namespace Sudoku.Controls
 
             _editingPanel.Draw(g);
             _menuPanel.Draw(g);
+            _mainInfoPanel.Draw(g);
             switch (_borderStyle)
             {
                 case BorderStyle.None:
@@ -266,12 +264,6 @@ namespace Sudoku.Controls
                     g.DrawRectangle(Pens.Black, outline);
                     break;
             }
-        }
-
-        private enum CellState
-        {
-            NonInteractive,
-            Interactive
         }
 
         private class MenuPanel
@@ -627,7 +619,7 @@ namespace Sudoku.Controls
 
             public int Column { get; set; }
 
-            public CellState CellState { get; set; }
+            public CellType State { get; set; }
 
             public RectangleF Bounds { get { return _bounds; } }
 
@@ -670,7 +662,7 @@ namespace Sudoku.Controls
                 DrawContent(g);
                 DrawConflictFlag(g);
                 DrawGroups(g);
-                _cellStateButton.CellState = CellState;
+                _cellStateButton.CellState = State;
                 _cellStateButton.ConstructBounds();
                 _cellStateButton.Draw(g);
             }
@@ -976,7 +968,7 @@ namespace Sudoku.Controls
 
                 public float Y { get; set; }
 
-                public CellState CellState { get; set; }
+                public CellType CellState { get; set; }
 
                 public float Width
                 {
@@ -1012,14 +1004,17 @@ namespace Sudoku.Controls
 
                     switch (CellState)
                     {
-                        case CellState.Interactive:
-                            image = Properties.Resources.PencilIcon;
+                        case CellType.Default:
+                            image = Properties.Resources.UnknownIcon;
                             break;
-                        case CellState.NonInteractive:
-                            image = Properties.Resources.NonInteractiveCellIcon;
+                        case CellType.Tip:
+                            image = Properties.Resources.BlockingIcon;
+                            break;
+                        case CellType.MustWrite:
+                            image = Properties.Resources.PencilIcon;
                             break;
                         default:
-                            image = Properties.Resources.PencilIcon;
+                            image = Properties.Resources.UnknownIcon;
                             break;
                     }
 
@@ -1047,6 +1042,198 @@ namespace Sudoku.Controls
                 public bool IsFocused(PointF point)
                 {
                     return _bounds.Contains(point);
+                }
+            }
+        }
+
+        private class CellsMainInfoPanel
+        {
+            private const int _panelWidth = 60;
+            private Rectangle _container;
+            private Rectangle _bounds;
+            private Rectangle _tipsCountBounds;
+            private Rectangle _mustWriteCountBounds;
+            private Rectangle _defaultCountBounds;
+            private Rectangle _allCountBounds;
+            private readonly InfoPanel _allCounter;
+            private readonly InfoPanel _tipsCounter;
+            private readonly InfoPanel _defaultCounter;
+            private readonly InfoPanel _mustWriteCounter;
+            private int countersSum;
+
+            public CellsMainInfoPanel(Rectangle container)
+            {
+                _container = container;
+                ConstructBounds();
+                countersSum = 0;
+                _allCounter = new InfoPanel(_allCountBounds);
+                _tipsCounter = new InfoPanel(_tipsCountBounds);
+                _defaultCounter = new InfoPanel(_defaultCountBounds);
+                _mustWriteCounter = new InfoPanel(_mustWriteCountBounds);
+                _tipsCounter.Image = Properties.Resources.BlockingIcon;
+                _defaultCounter.Image = Properties.Resources.UnknownIcon;
+                _mustWriteCounter.Image = Properties.Resources.PencilIcon;
+            }
+
+            public int TipsCount 
+            {
+                get
+                {
+                    return _tipsCounter.Value;
+                }
+
+                set
+                {
+                    countersSum -= _tipsCounter.Value;
+                    _tipsCounter.Value = value;
+                    countersSum += _tipsCounter.Value;
+                    _allCounter.Value = countersSum;
+                }
+            }
+
+            public int DefaultCount 
+            {
+                get
+                {
+                    return _defaultCounter.Value;
+                }
+
+                set
+                {
+                    countersSum -= _defaultCounter.Value;
+                    _defaultCounter.Value = value;
+                    countersSum += _defaultCounter.Value;
+                    _allCounter.Value = countersSum;
+                }
+            }
+
+            public int MustWriteCount 
+            {
+                get
+                {
+                    return _mustWriteCounter.Value;
+                }
+                set
+                {
+                    countersSum -= _mustWriteCounter.Value;
+                    _mustWriteCounter.Value = value;
+                    countersSum += _mustWriteCounter.Value;
+                    _allCounter.Value = countersSum;
+                }
+            }
+
+            public void Draw(Graphics g)
+            {
+                g.FillRectangle(Brushes.White, _bounds);
+                g.DrawRectangle(Pens.Gray, _bounds);
+                _tipsCounter.Draw(g);
+                _defaultCounter.Draw(g);
+                _mustWriteCounter.Draw(g);
+                _allCounter.Draw(g);
+            }
+
+            public void ChangeContainer(Rectangle container)
+            {
+                _container = container;
+                ConstructBounds();
+            }
+
+            private void ConstructBounds()
+            {
+                _bounds.X = _container.X + 3;
+                _bounds.Y = _container.Y;
+                _bounds.Width = _container.Width - 6;
+                _bounds.Height = _container.Height;
+
+                _tipsCountBounds.X = _bounds.X;
+                _tipsCountBounds.Y = _bounds.Y;
+                _tipsCountBounds.Height = _bounds.Height;
+                _tipsCountBounds.Width = _panelWidth;
+
+                _mustWriteCountBounds.X = _tipsCountBounds.Right;
+                _mustWriteCountBounds.Y = _bounds.Y;
+                _mustWriteCountBounds.Height = _bounds.Height;
+                _mustWriteCountBounds.Width = _panelWidth;
+
+                _defaultCountBounds.X = _mustWriteCountBounds.Right;
+                _defaultCountBounds.Y = _bounds.Y;
+                _defaultCountBounds.Height = _bounds.Height;
+                _defaultCountBounds.Width = _panelWidth;
+
+                _allCountBounds.Width = _panelWidth;
+                _allCountBounds.X = _bounds.Right - _allCountBounds.Width;
+                _allCountBounds.Y = _bounds.Y;
+                _allCountBounds.Height = _bounds.Height;
+
+                _allCounter?.ChangeContainer(_allCountBounds);
+                _tipsCounter?.ChangeContainer(_tipsCountBounds);
+                _defaultCounter?.ChangeContainer(_defaultCountBounds);
+                _mustWriteCounter?.ChangeContainer(_mustWriteCountBounds);
+            }
+
+            private class InfoPanel
+            {
+                private Rectangle _container;
+                private Rectangle _bounds;
+                private Rectangle _imageBounds;
+                private Rectangle _valueBounds;
+                private readonly SolidBrush _textBrush;
+                private readonly Font _font;
+                private readonly StringFormat _format;
+
+                public InfoPanel(Rectangle container)
+                {
+                    _container = container;
+                    _textBrush = (SolidBrush)Brushes.Black;
+                    _font = new Font("Times New Roman", 14);
+                    _format = new StringFormat()
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center,
+                    };
+
+                    ConstructBounds();
+                }
+
+                public Image Image { get; set; }
+
+                public int Value { get; set; }
+
+                public void Draw(Graphics g)
+                {
+                    if (Image != null)
+                    {
+                        g.DrawImage(Image, _imageBounds);
+                        g.DrawLine(Pens.LightGray, _valueBounds.X + 4, _bounds.Top,
+                            _valueBounds.X + 4, _bounds.Bottom);
+                    }
+
+                    g.DrawString($"{Value}", _font, _textBrush,
+                        _valueBounds, _format);
+                }
+
+                public void ChangeContainer(Rectangle container)
+                {
+                    _container = container;
+                    ConstructBounds();
+                }
+
+                private void ConstructBounds()
+                {
+                    _bounds.X = _container.X + 3;
+                    _bounds.Y = _container.Y + 3;
+                    _bounds.Width = _container.Width - 6;
+                    _bounds.Height = _container.Height - 6;
+
+                    _imageBounds.X = _bounds.X;
+                    _imageBounds.Y = _bounds.Y;
+                    _imageBounds.Height = _bounds.Height;
+                    _imageBounds.Width = _imageBounds.Height;
+
+                    _valueBounds.X = _imageBounds.Right;
+                    _valueBounds.Y = _bounds.Y;
+                    _valueBounds.Width = _bounds.Width - _imageBounds.Width;
+                    _valueBounds.Height = _bounds.Height;
                 }
             }
         }
@@ -1419,10 +1606,18 @@ namespace Sudoku.Controls
                 Height = _cellEditRect.Height * 7 / 100
             };
 
+            _cellsMainInfoRect = new Rectangle()
+            {
+                X = _cellEditRect.X,
+                Y = _menuRect.Bottom,
+                Width = _cellEditRect.Width,
+                Height = 25
+            };
+
             _selectedCellsListRect = new Rectangle()
             {
                 X = _cellEditRect.X + 15,
-                Y = _menuRect.Bottom + 15,
+                Y = _cellsMainInfoRect.Bottom + 15,
                 Width = _cellEditRect.Width - 30,
                 Height = _cellEditRect.Height * 78 / 100
             };
@@ -1430,16 +1625,19 @@ namespace Sudoku.Controls
             _editRect = new Rectangle()
             {
                 X = _cellEditRect.X,
-                Y = _selectedCellsListRect.Bottom + 20,
                 Width = _cellEditRect.Width - 1,
-                Height = _cellEditRect.Height -
-                    _selectedCellsListRect.Height -
-                    _menuRect.Height - 35
+                Height = _groupEditingHeight
             };
 
+            _editRect.Y = Height - _editRect.Height;
+
+            if (_drawer != null)
+                _drawer.Display = _mapDisplayRect;
+            _mainInfoPanel?.ChangeContainer(_cellsMainInfoRect);
             _editingPanel?.ChangeContainer(_editRect);
             _menuPanel?.ChangeContainer(_menuRect);
             _scroll = 0;
+
             UpdateContentCounters();
             UpdateShowingCells();
             ValidateScroll();
@@ -1447,7 +1645,7 @@ namespace Sudoku.Controls
 
         protected override void OnFontChanged(EventArgs e)
         {
-            _drawer.Font = Font;
+            _drawer.SolutionsFont = Font;
             Invalidate();
         }
 
@@ -1541,8 +1739,7 @@ namespace Sudoku.Controls
                     _selectionRectEnd = e.Location;
                     ConstructSelectionRect();
                     Size mapSize = new Size(_map.ColumnsCount, _map.RowsCount);
-                    List<Point> cells = _drawer.GetCells(_selectionRect,
-                        mapSize, _mapDisplayRect.Size);
+                    List<Point> cells = _drawer.GetCells(_selectionRect);
                     foreach (var cellPos in cells)
                     {
                         if (cellPos.X > -1 && cellPos.X < _map.ColumnsCount
@@ -1571,7 +1768,13 @@ namespace Sudoku.Controls
 
                         if (cell.IsButtonFocused(e.Location))
                         {
-                            _map.ChangeAvailability(cell.Row, cell.Column);
+                            cell.State++;
+                            if (!Enum.IsDefined(typeof(CellType), cell.State))
+                            {
+                                cell.State = CellType.Default;
+                            }
+
+                            _map.ChangeCellType(cell.Row, cell.Column, cell.State);
                         }
                     }
                 }
@@ -1656,6 +1859,7 @@ namespace Sudoku.Controls
             _editingPanel.IsButtonPressed = false;
 
             _isSelecting = false;
+            UpdateSelectionsCounters();
             UpdateShowingCells();
             ValidateScroll();
             Invalidate();
@@ -1739,8 +1943,14 @@ namespace Sudoku.Controls
                     case Keys.S:
                         _map.GroupSelected(GroupType.Sum);
                         break;
-                    case Keys.O:
-                        _map.ChangeSelectedAvailability();
+                    case Keys.B:
+                        _map.ChangeSelectedType(CellType.Tip);
+                        break;
+                    case Keys.U:
+                        _map.ChangeSelectedType(CellType.Default);
+                        break;
+                    case Keys.W:
+                        _map.ChangeSelectedType(CellType.MustWrite);
                         break;
                 }
             }
@@ -1750,7 +1960,7 @@ namespace Sudoku.Controls
                 switch (e.KeyCode)
                 {
                     case Keys.Delete:
-                        _map.Write(0);
+                        _map.WriteToSelected(0);
                         break;
                     case Keys.Back:
                         if (_editingPanel.IsIDEntering && 
@@ -1764,44 +1974,44 @@ namespace Sudoku.Controls
                         {
                             _editingPanel.EnteredType = string.Empty;
                         }
-                        else _map.Write(0);
+                        else _map.WriteToSelected(0);
                         break;
                     case Keys.A:
-                        _map.Write(10);
+                        _map.WriteToSelected(10);
                         break;
                     case Keys.B:
                         if (_editingPanel.IsTypeEntering)
                         {
                             _editingPanel.EnteredType = "basic";
                         }
-                        else _map.Write(11);
+                        else _map.WriteToSelected(11);
                         break;
                     case Keys.C:
-                        _map.Write(12);
+                        _map.WriteToSelected(12);
                         break;
                     case Keys.D:
-                        _map.Write(13);
+                        _map.WriteToSelected(13);
                         break;
                     case Keys.E:
-                        _map.Write(14);
+                        _map.WriteToSelected(14);
                         break;
                     case Keys.F:
-                        _map.Write(15);
+                        _map.WriteToSelected(15);
                         break;
                     case Keys.G:
-                        _map.Write(16);
+                        _map.WriteToSelected(16);
                         break;
                     case Keys.H:
-                        _map.Write(17);
+                        _map.WriteToSelected(17);
                         break;
                     case Keys.I:
-                        _map.Write(18);
+                        _map.WriteToSelected(18);
                         break;
                     case Keys.J:
-                        _map.Write(19);
+                        _map.WriteToSelected(19);
                         break;
                     case Keys.K:
-                        _map.Write(20);
+                        _map.WriteToSelected(20);
                         break;
                     case Keys.S:
                         if (_editingPanel.IsTypeEntering)
@@ -1853,6 +2063,7 @@ namespace Sudoku.Controls
                 }
             }
 
+            UpdateSelectionsCounters();
             UpdateShowingCells();
             ValidateScroll();
             Invalidate();
@@ -1869,7 +2080,7 @@ namespace Sudoku.Controls
 
                 else 
                 { 
-                    _map.Write(int.Parse(e.KeyChar.ToString())); 
+                    _map.WriteToSelected(int.Parse(e.KeyChar.ToString())); 
                 }
             }
 
@@ -1879,8 +2090,10 @@ namespace Sudoku.Controls
 
         protected override void OnKeyUp(KeyEventArgs e)
         {
-            _isShiftPressed = false;
+            if (e.KeyCode == Keys.ShiftKey)
+                _isShiftPressed = false;
 
+            UpdateSelectionsCounters();
             UpdateContentCounters();
             Invalidate();
         }
@@ -1895,9 +2108,8 @@ namespace Sudoku.Controls
                 {
                     Row = cell.Row,
                     Column = cell.Column,
-                    Correct = cell.Correct,
-                    CellState = cell.IsAvailable ? 
-                        CellState.Interactive : CellState.NonInteractive,
+                    Correct = cell.Solution,
+                    State = cell.State,
                     IsConflict = _map.IsCellConflict(cell.Row, cell.Column)
                 };
 
@@ -1917,7 +2129,7 @@ namespace Sudoku.Controls
         {
             _contentCounterPanels.Clear();
             var addedCounters = new List<int>();
-            var contents = _map.GetCells().Select(c => c.Correct).Where(c => c != 0);
+            var contents = _map.GetCells().Select(c => c.Solution).Where(c => c != 0);
             contents = contents.OrderBy(c => c);
             foreach (int cont in contents)
             {
@@ -1932,7 +2144,7 @@ namespace Sudoku.Controls
                     {
                         Font = new Font("Times New Roman", 12),
                         Content = cont.ToString(),
-                        Count = _map.CountContent(cont).ToString(),
+                        Count = _map.CountSolution(cont).ToString(),
                         Y = _bottomPanelRect.Y + 3,
                         Height = _bottomPanelRect.Height - 6
                     };
@@ -1949,6 +2161,13 @@ namespace Sudoku.Controls
                     (_bottomPanelRect.Width - splittersWidth)
                     / _contentCounterPanels.Count;
             }
+        }
+
+        private void UpdateSelectionsCounters()
+        {
+            _mainInfoPanel.DefaultCount = _map.CountSelectedDefault();
+            _mainInfoPanel.MustWriteCount = _map.CountSelectedMustWrite();
+            _mainInfoPanel.TipsCount = _map.CountSelectedTips();
         }
 
         private void OnSaveButtonClick(MapActionClickArgs e)

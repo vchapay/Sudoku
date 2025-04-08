@@ -53,9 +53,9 @@
             this.ResumeLayout(false);
 
         }
+
         #endregion
 
-        private Controls.SudokuMainMenu sudokuMainMenu1;
         private Controls.ScenesContainer _scenesContainer;
     }
 }

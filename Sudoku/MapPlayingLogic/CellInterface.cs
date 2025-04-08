@@ -9,11 +9,11 @@ namespace Sudoku.MapLogic
     /// </summary>
     internal sealed class CellInterface
     {
-        private readonly int _correct;
+        private readonly int _solution;
+        private readonly CellType _state;
         private int _entered;
         private readonly int _row;
         private readonly int _column;
-        private readonly bool _available;
         private readonly List<int> _groups;
         private readonly HashSet<int> _notes = new HashSet<int>();
         private bool _isSelected;
@@ -27,20 +27,19 @@ namespace Sudoku.MapLogic
         /// <param name="available"></param>
         /// <param name="areas"></param>
         public CellInterface(int correct, 
-            int row, int column, bool available,
-            List<int> areas)
+            int row, int column, List<int> areas, CellType state)
         {
-            _correct = correct;
+            _solution = correct;
             _row = row;
             _column = column;
-            _available = available;
             _groups = areas;
+            _state = state;
         }
 
         /// <summary>
         /// Значение, являющееся решением ячейки
         /// </summary>
-        public int Correct { get { return _correct; } }
+        public int Solution => _solution;
 
         /// <summary>
         /// Значение, введенное игроком
@@ -57,27 +56,22 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Строка, в которой расположена ячейка
         /// </summary>
-        public int Row { get { return _row; } }
+        public int Row => _row;
 
         /// <summary>
         /// Столбец, в котором расположена ячейка
         /// </summary>
-        public int Column { get { return _column; } }
-
-        /// <summary>
-        /// Открыта ли ячейка для ввода значения
-        /// </summary>
-        public bool IsAvailable { get { return _available; } }
+        public int Column => _column;
 
         /// <summary>
         /// Группы, в которые входит ячейка
         /// </summary>
-        public IReadOnlyCollection<int> Groups { get { return _groups; } }
+        public IReadOnlyCollection<int> Groups => _groups;
 
         /// <summary>
         /// Заметки карандашом в ячейке
         /// </summary>
-        public IReadOnlyCollection<int> Notes { get { return _notes; } }
+        public IReadOnlyCollection<int> Notes => _notes;
 
         /// <summary>
         /// Выделена ли ячейка
@@ -100,12 +94,38 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Было ли введено игроком значение в ячейку
         /// </summary>
-        public bool IsEntered { get { return _entered != 0; } }
+        public bool IsEntered => _entered != 0;
 
         /// <summary>
-        /// Решена ли ячейка верно
+        /// Возвращает значение, найдено ли решение для ячейки
+        /// (всегда false для ячеек-подсказок).
         /// </summary>
-        public bool IsThereMistake => _available && IsEntered && (_correct != _entered);
+        public bool IsSolved => IsAvailable && Entered != 0 && !IsThereMistake;
+
+        /// <summary>
+        /// Возвращает состояние ячейки (доступна ли для ввода,
+        /// гарантирует ли не пустое решение и т.д.)
+        /// </summary>
+        public CellType State => _state;
+
+        /// <summary>
+        /// Возвращает значение, является ли ячейка 
+        /// доступной для ввода значений игроком.
+        /// </summary>
+        public bool IsAvailable => _state != CellType.Tip;
+
+        /// <summary>
+        /// Есть ли в решении ячейки ошибка 
+        /// (всегда false для ячеек-подсказок).
+        /// </summary>
+        public bool IsThereMistake => State != CellType.Tip
+            && IsEntered && (_solution != _entered);
+
+        /// <summary>
+        /// Возвращает значение, заблокирована ли ячейка
+        /// (недоступна для ввода и имеет пустое решение).
+        /// </summary>
+        public bool IsBlocked => State == CellType.Tip && Solution == 0;
 
         /// <summary>
         /// Записывает число в заметки, если такого еще нет
@@ -136,7 +156,7 @@ namespace Sudoku.MapLogic
         public CellInfo GetInfo()
         {
             return new CellInfo(Row, Column, 
-                Correct, _groups, IsAvailable, IsSelected);
+                Solution, _groups, IsSelected, State);
         }
 
         public static bool operator ==(CellInterface left, CellInterface right)

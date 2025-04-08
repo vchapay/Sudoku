@@ -73,6 +73,16 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap BlockingIcon {
+            get {
+                object obj = ResourceManager.GetObject("BlockingIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ChangingIcon {
             get {
                 object obj = ResourceManager.GetObject("ChangingIcon", resourceCulture);
@@ -163,16 +173,6 @@ namespace Sudoku.Properties {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NonInteractiveCellIcon {
-            get {
-                object obj = ResourceManager.GetObject("NonInteractiveCellIcon", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap PencilIcon {
             get {
                 object obj = ResourceManager.GetObject("PencilIcon", resourceCulture);
@@ -226,6 +226,16 @@ namespace Sudoku.Properties {
         internal static System.Drawing.Bitmap UndoIcon {
             get {
                 object obj = ResourceManager.GetObject("UndoIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap UnknownIcon {
+            get {
+                object obj = ResourceManager.GetObject("UnknownIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

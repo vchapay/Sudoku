@@ -63,6 +63,11 @@ namespace Sudoku.MapPlayingLogic
         /// </summary>
         public MapTypes Type { get { return _type; } }
 
+        public CellInterface GetCell(int row, int column)
+        {
+            return _cells.Find(c => c.Row == row && c.Column == column);
+        }
+
         /// <summary>
         /// Возвращает список ячеек, принадлежащих группе с заданным индентификатором
         /// </summary>
@@ -84,6 +89,10 @@ namespace Sudoku.MapPlayingLogic
             return cells;
         }
 
+        /// <summary>
+        /// Возвращает все выделенные ячейки.
+        /// </summary>
+        /// <returns></returns>
         public List<CellInterface> GetSelectedCells()
         {
             var cells = new List<CellInterface>();
@@ -105,10 +114,25 @@ namespace Sudoku.MapPlayingLogic
         public void ChangeCellSelection(int row, int column)
         {
             CellInterface cell = this[row, column];
-            cell.IsSelected = !cell.IsSelected;
+            SetCellSelection(row, column, !cell.IsSelected);
+        }
+
+        /// <summary>
+        /// Изменяет выделение ячейки на заданное состояние.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="column"></param>
+        /// <param name="isSelected"></param>
+        public void SetCellSelection(int row, int column, bool isSelected)
+        {
+            CellInterface cell = this[row, column];
+            if (cell == null)
+                return;
+
+            cell.IsSelected = isSelected;
             foreach (int gID in cell.Groups)
             {
-                if (cell.IsSelected)
+                if (isSelected)
                 {
                     _groups.Find(g => g.ID == gID).IsSelected = true;
                 }
@@ -121,6 +145,35 @@ namespace Sudoku.MapPlayingLogic
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Возвращает все числа, встречающиеся в выделенных ячейках
+        /// (заметки не учитываются).
+        /// </summary>
+        /// <returns></returns>
+        public List<int> GetSelectedNums()
+        {
+            var selected = new HashSet<int>();
+
+            foreach (var cell in Cells)
+            {
+                if (cell.IsSelected)
+                {
+                    if (!cell.IsAvailable)
+                    {
+                        selected.Add(cell.Solution);
+                    }
+
+                    else
+                    {
+                        selected.Add(cell.Entered);
+                    }
+                }
+            }
+
+            selected.Remove(0);
+            return selected.ToList();
         }
 
         /// <summary>
@@ -155,11 +208,89 @@ namespace Sudoku.MapPlayingLogic
         }
 
         /// <summary>
-        /// Записывает заметку карандашом в выделенную ячейку.
+        /// Возвращает все ячейки с указанным решением.
+        /// </summary>
+        /// <param name="solution"></param>
+        /// <returns></returns>
+        public List<CellInterface> GetCellsBySolution(int solution)
+        {
+            var res = new List<CellInterface>();
+            foreach (var cell in _cells)
+            {
+                if (cell.Solution == solution)
+                {
+                    res.Add(cell);
+                }
+            }
+
+            return res;
+        }
+
+        /// <summary>
+        /// Возвращает все открытые и решенные ячейки с указанным решением.
+        /// </summary>
+        /// <param name="solution"></param>
+        /// <returns></returns>
+        public List<CellInterface> GetCellsByOpenedSolution(int solution)
+        {
+            var res = new List<CellInterface>();
+            foreach (var cell in _cells)
+            {
+                if (cell.IsSolved && cell.Solution == solution)
+                {
+                    res.Add(cell);
+                }
+
+                else
+                {
+                    if (!cell.IsAvailable && cell.Solution == solution)
+                    {
+                        res.Add(cell);
+                    }
+                }
+            }
+
+            return res;
+        }
+
+        /// <summary>
+        /// Находит все ассоциированные (связанные каким-либо правилом карты)
+        /// ячейки для заданной группы ячеек.
+        /// </summary>
+        /// <param name="cells"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public List<CellInterface> GetAssociatedCells(params CellInterface[] cells)
+        {
+            if (cells == null)
+                throw new ArgumentNullException();
+
+            if (cells.Length == 0)
+                return new List<CellInterface>();
+
+            HashSet<CellInterface> res = new HashSet<CellInterface>();
+            res.UnionWith(_cells);
+            foreach (var cell in cells)
+            {
+                var sameCol = _cells.Where(c => c.Column == cell.Column);
+                var sameRow = _cells.Where(c => c.Row == cell.Row);
+                var sameGroup = _cells.Where(c =>
+                    c.Groups.Intersect(cell.Groups).Any());
+
+                var allSame = sameGroup.Union(sameCol.Union(sameRow));
+                res.IntersectWith(allSame);
+            }
+
+            return res.ToList();
+        }
+
+        /// <summary>
+        /// Записывает заметку карандашом в выделенные ячейки.
         /// </summary>
         /// <param name="num"></param>
         public bool WriteNote(int num)
         {
+            bool res = false;
             foreach (var cell in Cells)
             {
                 if (cell.IsSelected)
@@ -167,17 +298,19 @@ namespace Sudoku.MapPlayingLogic
                     if (num == 0)
                     {
                         cell.ClearNotes();
-                        return true;
+                        res = true;
                     }
 
                     else
                     {
-                        return cell.WriteNote(num);
+                        bool forCell = cell.WriteNote(num);
+                        if (!res)
+                            res = forCell;
                     }
                 }
             }
 
-            return false;
+            return res;
         }
 
         /// <summary>
@@ -186,19 +319,22 @@ namespace Sudoku.MapPlayingLogic
         /// <param name="num"></param>
         public bool RemoveNote(int num)
         {
+            bool res = false;
             foreach (var cell in Cells)
             {
                 if (cell.IsSelected)
                 {
-                    return cell.RemoveNote(num);
+                    bool forCell = cell.RemoveNote(num);
+                    if (!res)
+                        res = forCell;
                 }
             }
 
-            return false;
+            return res;
         }
 
         /// <summary>
-        /// Считает число заданных решений ячеек в текущем экземпляре
+        /// Считает число заданных не найденных решений ячеек в текущем экземпляре.
         /// </summary>
         /// <param name="content"></param>
         /// <returns></returns>
@@ -208,8 +344,8 @@ namespace Sudoku.MapPlayingLogic
 
             foreach (var cell in _cells)
             {
-                if (cell.Correct == content && cell.IsAvailable
-                    && cell.Entered != cell.Correct)
+                if (cell.Solution == content && cell.IsAvailable
+                    && cell.Entered != cell.Solution)
                 {
                     count++;
                 }

@@ -3,25 +3,31 @@ using System.Collections.Generic;
 
 namespace Sudoku.MapLogic
 {
-    public enum CellState
+    public enum CellType
     {
         /// <summary>
+        /// Стандартная ячейка.
         /// В ячейку может быть записано значение, но 
-        /// ее решением может быть пустое значение.
+        /// ее решением может быть пустое значение
+        /// (для карт, где пустое решение является допустимым значением).
         /// </summary>
-        Unknown = 0,
+        Default = 0,
 
         /// <summary>
         /// В ячейку не может быть записано значение
         /// (она заблокирована или верное значение открыто).
         /// </summary>
-        Blocked,
+        Tip = 1,
 
         /// <summary>
         /// В ячейку должно быть записано значение, так 
         /// как ее решением не может быть пустое значение.
+        /// Является дополнением из варианта NumberBall
+        /// и подсказкой на карте для карт, где пустое решение 
+        /// является допустимым значением.
+        /// Не используется в классическом судоку.
         /// </summary>
-        MustToWrite
+        MustWrite = 2,
     }
 
     [Serializable]
@@ -40,14 +46,14 @@ namespace Sudoku.MapLogic
         /// <param name="isAvailable"></param>
         /// <param name="isSelected"></param>
         public CellInfo(int row, int column,
-            int correct, IEnumerable<int> groups, bool isAvailable,
-            bool isSelected)
+            int correct, IEnumerable<int> groups,
+            bool isSelected, CellType state)
         {
             Row = row;
             Column = column;
-            Correct = correct;
+            Solution = correct;
             Groups = groups;
-            IsAvailable = isAvailable;
+            State = state;
             IsSelected = isSelected;
         }
 
@@ -64,7 +70,7 @@ namespace Sudoku.MapLogic
         /// <summary>
         /// Возвращает значение, являющееся решением ячейки.
         /// </summary>
-        public int Correct { get; }
+        public int Solution { get; }
 
         /// <summary>
         /// Возвращает коллекцию идентификаторов групп, 
@@ -76,12 +82,24 @@ namespace Sudoku.MapLogic
         /// Возвращает значение, является ли ячейка 
         /// доступной для ввода значений игроком.
         /// </summary>
-        public bool IsAvailable { get; }
+        public bool IsAvailable { get { return State != CellType.Tip; } }
+
+        /// <summary>
+        /// Возвращает значение, заблокирована ли ячейка
+        /// (недоступна для ввода и имеет пустое решение).
+        /// </summary>
+        public bool IsBlocked { get { return State == CellType.Tip && Solution == 0; } }
 
         /// <summary>
         /// Возвращает значение, выделена ли ячейка.
         /// </summary>
         public bool IsSelected { get; }
+
+        /// <summary>
+        /// Возвращает состояние ячейки (доступна ли для ввода,
+        /// гарантирует ли не пустое решение).
+        /// </summary>
+        public CellType State { get; }
 
         public static bool operator ==(CellInfo left, CellInfo right)
         {

@@ -7,8 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
-using System.Xml.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Sudoku
 {
@@ -19,7 +17,7 @@ namespace Sudoku
         private readonly SudokuMainMenu _menu;
         private readonly SudokuMapsPage _mapListPage;
         private readonly SudokuEditor _mapEditor;
-        private readonly SudokuPlayerDisplay _mapPlayer;
+        private readonly SudokuPlayer _mapPlayer;
         private readonly SudokuCreatingPage _mapCreatingPage;
         private readonly SudokuPreviewPage _mapPreviewPage;
         private Stack<Control> _prevControls;
@@ -33,7 +31,7 @@ namespace Sudoku
             _menu = new SudokuMainMenu();
             _mapListPage = new SudokuMapsPage();
             _mapEditor = new SudokuEditor();
-            _mapPlayer = new SudokuPlayerDisplay();
+            _mapPlayer = new SudokuPlayer();
             _mapCreatingPage = new SudokuCreatingPage();
             _mapPreviewPage = new SudokuPreviewPage();
             _scenesContainer.Control = _menu;

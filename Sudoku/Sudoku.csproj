@@ -66,7 +66,14 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="MapAnalytics\SolutionMove.cs" />
+    <Compile Include="MapAnalytics\SolverMove.cs" />
+    <Compile Include="MapAnalytics\SudokuSolutionReplay.cs" />
+    <Compile Include="MapAnalytics\SudokuSolver.cs" />
+    <Compile Include="MapGraphics\Drawer.cs" />
     <Compile Include="MapGraphics\MapDrawer.cs" />
+    <Compile Include="MapGraphics\MapEditorDisplayDrawer.cs" />
+    <Compile Include="MapGraphics\MapPlayerDisplayDrawer.cs" />
     <Compile Include="MapLogic\CellInfo.cs" />
     <Compile Include="MapLogic\ConflictInfo.cs" />
     <Compile Include="MapLogic\GroupInfo.cs" />
@@ -83,7 +90,7 @@
     <Compile Include="Controls\SudokuMapsPage.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Controls\SudokuPlayerDisplay.cs">
+    <Compile Include="Controls\SudokuPlayer.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Controls\SudokuEditor.cs">
@@ -166,6 +173,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\Иконка раворачивания.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Иконка вопроса.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

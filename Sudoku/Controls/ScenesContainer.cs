@@ -166,7 +166,7 @@ namespace Sudoku.Controls
             _outlineRect.Height = Height - 20;
 
             int tWidth = _outlineRect.Width - 1 > 0 ? _outlineRect.Width - 1 : 1;
-            int tHeight = _outlineRect.Height / 13 > 0 ? _outlineRect.Height / 13 : 1;
+            int tHeight = 50 < Height ? 50 : 1;
 
             _topPanelRect.X = _outlineRect.X;
             _topPanelRect.Y = _outlineRect.Y;

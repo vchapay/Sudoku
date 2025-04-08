@@ -8,10 +8,10 @@ using System.Windows.Forms;
 
 namespace Sudoku.Controls
 {
-    internal sealed class SudokuPlayerDisplay : Control
+    internal sealed class SudokuPlayer : Control
     {
         private MapInterface _map;
-        private readonly MapDrawer _drawer;
+        private readonly MapPlayerDisplayDrawer _drawer;
         private readonly ContentCounterPanel[] _panels;
         private int _panelsSplitter = 3;
         private Rectangle _mapRect;
@@ -21,11 +21,15 @@ namespace Sudoku.Controls
         private Rectangle _rightBottomPanelRect;
         private SudokuControlModel _switchModeBtn;
         private SudokuControlModel _clearBtn;
-        private float _ratio = 0.85f;
+        private float _ratio = 0.88f;
         private Pen _splitterPen;
         private WritingMode _writingMode;
+        private bool _isShiftPressed;
+        private bool _selecting;
+        private bool _selectingState;
+        private Point _selectionHeaderCell;
 
-        public SudokuPlayerDisplay() 
+        public SudokuPlayer() 
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
                 ControlStyles.ResizeRedraw |
@@ -36,7 +40,6 @@ namespace Sudoku.Controls
 
             Map map = new Map();
             map.FillWithDefaultValues();
-            _drawer = new MapDrawer();
             _map = map.GetInterface();
 
             _panels = new ContentCounterPanel[20];
@@ -63,7 +66,8 @@ namespace Sudoku.Controls
 
             Width = 350;
             Height = 350;
-            Font = _drawer.Font;
+            _drawer = new MapPlayerDisplayDrawer(_map, _mapRect);
+            Font = _drawer.SolutionsFont;
             _splitterPen = new Pen(Color.Gray)
             {
                 Width = _panelsSplitter,
@@ -82,6 +86,7 @@ namespace Sudoku.Controls
             set
             {
                 _map = value;
+                _drawer.Target = _map;
                 UpdateCounters();
             }
         }
@@ -91,7 +96,7 @@ namespace Sudoku.Controls
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
             g.Clear(Color.White);
-            _drawer.Draw(e.Graphics, _mapRect, _map);
+            _drawer.Draw(e.Graphics);
             g.DrawLine(_splitterPen, 0, _bottomRect.Y,
                 Width, _bottomRect.Y);
 
@@ -145,6 +150,9 @@ namespace Sudoku.Controls
             _clearBtn.Y = _rightBottomPanelRect.Y
                 + (_rightBottomPanelRect.Height - _clearBtn.Height) / 2;
 
+            if (_drawer != null)
+                _drawer.Display = _mapRect;
+
             int panelWidth = (_countersRect.Width - 22 * _panelsSplitter) / 20;
             int panelHeight = _countersRect.Height - 10;
             int nextX = _panelsSplitter + _countersRect.X;
@@ -161,7 +169,7 @@ namespace Sudoku.Controls
 
         protected override void OnFontChanged(EventArgs e)
         {
-            _drawer.Font = Font;
+            _drawer.SolutionsFont = Font;
             Invalidate();
         }
 
@@ -170,6 +178,20 @@ namespace Sudoku.Controls
             foreach (var panel in _panels)
             {
                 panel.IsSelected = panel.IsFocused(e.Location);
+            }
+
+            if (_mapRect.Contains(e.X, e.Y))
+            {
+                if (_selecting)
+                {
+                    Point pos = _drawer.GetCell(e.X, e.Y);
+                    if (pos.X > -1 && pos.X < _map.ColumnsCount
+                        && pos.Y > -1 && pos.Y < _map.RowsCount)
+                    {
+                        _map.SetCellSelection(pos.Y, pos.X, _selectingState);
+                        _selectionHeaderCell = pos;
+                    }
+                }
             }
 
             _clearBtn.IsSelected = _clearBtn.IsFocused(e.Location);
@@ -185,6 +207,23 @@ namespace Sudoku.Controls
                 panel.IsPressed = panel.IsFocused(e.Location);
             }
 
+            if (_mapRect.Contains(e.X, e.Y))
+            {
+                if (!_isShiftPressed)
+                    _map.ClearSelection();
+
+                Point pos = _drawer.GetCell(e.X, e.Y);
+                if (pos.X > -1 && pos.X < _map.ColumnsCount
+                    && pos.Y > -1 && pos.Y < _map.RowsCount)
+                {
+                    _selectingState = !_map.GetCell(pos.Y, pos.X).IsSelected;
+                    _selecting = true;
+                    _selectionHeaderCell = pos;
+                }
+
+                _map.SetCellSelection(pos.Y, pos.X, _selectingState);
+            }
+
             _clearBtn.IsPressed = _clearBtn.IsFocused(e.Location);
             if (_switchModeBtn.IsFocused(e.Location))
                 _switchModeBtn.IsPressed = !_switchModeBtn.IsPressed;
@@ -194,17 +233,7 @@ namespace Sudoku.Controls
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
-            if (_mapRect.Contains(e.X, e.Y))
-            {
-                _map.ClearSelection();
-                Size mapSize = new Size(_map.ColumnsCount, _map.RowsCount);
-                Point pos = _drawer.GetCell(e.X, e.Y, mapSize, _mapRect.Size);
-                if (pos.X > -1 && pos.X < _map.ColumnsCount
-                    && pos.Y > -1 && pos.Y < _map.RowsCount)
-                {
-                    _map.ChangeCellSelection(pos.Y, pos.X);
-                }
-            }
+            _selecting = false;
 
             foreach (var panel in _panels)
             {
@@ -235,13 +264,46 @@ namespace Sudoku.Controls
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (!e.Control && !e.Shift)
+            if (e.Shift)
+            {
+                _isShiftPressed = true;
+            }
+
+            else
             {
                 switch (e.KeyCode)
                 {
                     case Keys.Delete:
                     case Keys.Back:
+                    case Keys.NumPad0:
                         Write(0);
+                        break;
+                    case Keys.NumPad1:
+                        Write(1);
+                        break;
+                    case Keys.NumPad2:
+                        Write(2);
+                        break;
+                    case Keys.NumPad3:
+                        Write(3);
+                        break;
+                    case Keys.NumPad4:
+                        Write(4);
+                        break;
+                    case Keys.NumPad5:
+                        Write(5);
+                        break;
+                    case Keys.NumPad6:
+                        Write(6);
+                        break;
+                    case Keys.NumPad7:
+                        Write(7);
+                        break;
+                    case Keys.NumPad8:
+                        Write(8);
+                        break;
+                    case Keys.NumPad9:
+                        Write(9);
                         break;
                     case Keys.A:
                         Write(10);
@@ -277,61 +339,74 @@ namespace Sudoku.Controls
                         Write(20);
                         break;
                 }
+            }
 
-                var selectedCells = _map.GetSelectedCells();
-                if (selectedCells.Count == 1)
-                {
-                    CellInterface cell = selectedCells.First();
-                    switch (e.KeyCode)
-                    {
-                        case Keys.Up:
-                            int newPos = cell.Row - 1;
-                            if (newPos > -1)
-                            {
-                                _map.ClearSelection();
-                                _map.ChangeCellSelection(newPos, cell.Column);
-                            }
-                            break;
-                        case Keys.Down:
-                            newPos = cell.Row + 1;
-                            if (newPos < _map.RowsCount)
-                            {
-                                _map.ClearSelection();
-                                _map.ChangeCellSelection(newPos, cell.Column);
-                            }
-                            break;
-                        case Keys.Left:
-                            newPos = cell.Column - 1;
-                            if (newPos > -1)
-                            {
-                                _map.ClearSelection();
-                                _map.ChangeCellSelection(cell.Row, newPos);
-                            }
-                            break;
-                        case Keys.Right:
-                            newPos = cell.Column + 1;
-                            if (newPos < _map.ColumnsCount)
-                            {
-                                _map.ClearSelection();
-                                _map.ChangeCellSelection(cell.Row, newPos);
-                            }
-                            break;
-                    }
-                }
+            if (e.Control)
+            {
+                _writingMode = WritingMode.Note;
+                _switchModeBtn.IsPressed = true;
+            }
+
+            switch (e.KeyCode)
+            {
+                case Keys.Up:
+                    int newPos = _selectionHeaderCell.Y - 1;
+                    if (newPos < 0)
+                        newPos = _map.RowsCount - 1;
+                    if (!_isShiftPressed)
+                        _map.ClearSelection();
+                    _map.SetCellSelection(newPos, 
+                        _selectionHeaderCell.X, true);
+                    _selectionHeaderCell = new Point(
+                        _selectionHeaderCell.X, newPos);
+                    break;
+                case Keys.Down:
+                    newPos = _selectionHeaderCell.Y + 1;
+                    if (newPos >= _map.RowsCount)
+                        newPos = 0;
+                    if (!_isShiftPressed)
+                        _map.ClearSelection();
+                    _map.SetCellSelection(newPos, 
+                        _selectionHeaderCell.X, true);
+                    _selectionHeaderCell = new Point(
+                        _selectionHeaderCell.X, newPos);
+                    break;
+                case Keys.Left:
+                    newPos = _selectionHeaderCell.X - 1;
+                    if (newPos < 0)
+                        newPos = _map.ColumnsCount - 1;
+                    if (!_isShiftPressed)
+                        _map.ClearSelection();
+                    _map.SetCellSelection(
+                        _selectionHeaderCell.Y, newPos, true);
+                    _selectionHeaderCell = new Point(newPos,
+                        _selectionHeaderCell.Y);
+                    break;
+                case Keys.Right:
+                    newPos = _selectionHeaderCell.X + 1;
+                    if (newPos >= _map.ColumnsCount)
+                        newPos = 0;
+                    if (!_isShiftPressed)
+                        _map.ClearSelection();
+                    _map.SetCellSelection(
+                        _selectionHeaderCell.Y, newPos, true);
+                    _selectionHeaderCell = new Point(newPos,
+                        _selectionHeaderCell.Y);
+                    break;
             }
 
             UpdateCounters();
             Invalidate();
         }
 
-        protected override void OnKeyPress(KeyPressEventArgs e)
+        protected override void OnKeyUp(KeyEventArgs e)
         {
-            if (char.IsDigit(e.KeyChar))
-            {
-                Write(int.Parse(e.KeyChar.ToString()));
-            }
+            if (e.KeyCode == Keys.ShiftKey)
+                _isShiftPressed = false;
 
-            UpdateCounters();
+            if (e.KeyCode == Keys.ControlKey)
+                _switchModeBtn.IsPressed = false;
+
             Invalidate();
         }
 
